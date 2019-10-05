@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "coinrun_adventure"
+version = "0.1.1"
+description = ""
+authors = ["Anaelle Laurans <16943368+Laurans@users.noreply.github.com>"]
+packages = [
+    {include= "coinrun_adventure"},
+    {include= "coinrun"},
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+loguru = "^0.3.2"
+joblib = "^0.14.0"
+mpi4py = "^3.0"
+matplotlib = "^3.1"
+tensorflow-gpu = {path = "wheels/tensorflow_gpu-2.0.0-cp37-cp37m-manylinux2010_x86_64.whl"}
+gym = "^0.14.0"
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+flake8 = "^3.7"
+black = {version = "^18.3-alpha.0", allows-prereleases = true}
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
