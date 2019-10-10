@@ -1,8 +1,8 @@
 FROM nvidia/cuda:10.1-cudnn7-runtime
 
-ARG NB_USER
-ARG NB_UID
-ARG NB_GID
+ARG NB_USER=vscode
+ARG NB_UID=1000
+ARG NB_GID=1000
 
 
 # Configure environment
@@ -45,3 +45,4 @@ RUN cd $HOME && curl https://pyenv.run | bash && \
 
 # Install Poetry
 RUN eval "$(pyenv init -)" && pip install --upgrade pip poetry && poetry config settings.virtualenvs.create false
+WORKDIR ${HOME}/workdir
