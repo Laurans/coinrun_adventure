@@ -1,9 +1,10 @@
 import tensorflow as tf
 import numpy as np
+from .model import Model
 
 
 class PPOAgent:
-    def __init__(self, env, model, num_steps, gamma_coef, lambda_coef):
+    def __init__(self, env, model: Model, num_steps, gamma_coef, lambda_coef):
         self.env = env
         self.model = model
         self.batch_ob_shape = ()
@@ -12,13 +13,13 @@ class PPOAgent:
         self.num_steps = num_steps
 
         self.obs = np.zeros(
-            (env.num_envs,) + env.observation_shape.shape,
-            dtype=env.observation_shape.dtype.name,
+            (env.num_envs,) + env.observation_space.shape,
+            dtype=env.observation_space.dtype.name,
         )
         self.obs[:] = env.reset()
         self.dones = [False for _ in range(env.num_envs)]
 
-    def step(self):
+    def run(self):
         """
         Make a mini batch
         """

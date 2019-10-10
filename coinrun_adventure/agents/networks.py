@@ -114,6 +114,7 @@ def nature_cnn():
         h3 = conv(
             "c3", nf=64, ks=3, strides=1, activation="relu", init_scale=np.sqrt(2)
         )(h2)
+        h3 = tf.keras.layers.Flatten()(h3)
         h3 = tf.keras.layers.Dense(
             units=512,
             kernel_initializer=ortho_init(np.sqrt(2)),

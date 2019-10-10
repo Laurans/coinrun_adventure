@@ -26,7 +26,7 @@ class PolicyWithValue(tf.Module):
 
         """
         self.policy_network = policy_network
-        self.value_network = value_network
+        self.value_network = value_network or policy_network
         self.estimate_q = estimate_q
         self.initial_state = None
 
@@ -38,10 +38,14 @@ class PolicyWithValue(tf.Module):
         if estimate_q:
             assert isinstance(ac_space, spaces.Discrete)
             # self.pi = fc("pi", self.policy_network.output_shape, ac_space.n)
-            self.value_fc = fc("q", self.value_network.output_shape, ac_space.n)
+            self.value_fc = fc(
+                "q", input_shape=self.value_network.output_shape, units=ac_space.n
+            )
         else:
             # self.pi = fc("pi", self.policy_network.output_shape, ac_space.shape[0])
-            self.value_fc = fc("vf", self.value_network.output_shape, 1)
+            self.value_fc = fc(
+                "vf", input_shape=self.value_network.output_shape, units=1
+            )
 
     @tf.function
     def step(self, observation):

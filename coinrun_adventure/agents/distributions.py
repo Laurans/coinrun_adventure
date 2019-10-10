@@ -245,4 +245,11 @@ def _matching_fc(tensor_shape, name, size, init_scale, init_bias):
     if tensor_shape[-1] == size:
         return lambda x: x
     else:
-        return fc(name, tensor_shape, size, init_scale=init_scale, init_bias=init_bias)
+        return fc(
+            name,
+            input_shape=tensor_shape,
+            units=size,
+            init_scale=init_scale,
+            init_bias=init_bias,
+        )
+
