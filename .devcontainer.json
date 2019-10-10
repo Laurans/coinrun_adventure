@@ -1,9 +1,0 @@
-{
-    "image": "coinrun_adventure",
-    "workspaceFolder": "/home/anaelle/workdir",
-    "workspaceMount": "src=${localWorkspaceFolder},dst=/home/anaelle/workdir,type=bind",
-
-    "runArgs": ["--gpus", "all", "--name", "coinrun_venv"],
-
-    "extensions": ["ms-python.python"]
-}

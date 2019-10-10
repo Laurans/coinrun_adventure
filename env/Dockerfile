@@ -3,14 +3,12 @@ FROM nvidia/cuda:10.1-cudnn7-runtime
 ARG NB_USER=vscode
 ARG NB_UID=1000
 ARG NB_GID=1000
-ARG NB_DISPLAY=:0
 
 
 # Configure environment
 ENV NB_USER=$NB_USER \
     NB_UID=$NB_UID \
-    NB_GID=$NB_GID \
-    DISPLAY=$NB_DISPLAY
+    NB_GID=$NB_GID
 
 ENV HOME=/home/$NB_USER 
 
