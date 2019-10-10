@@ -12,3 +12,6 @@ make
 zlib1g-dev
 curl
 libopenmpi-dev
+libqt5gui5
+xvfb
+x11-apps
