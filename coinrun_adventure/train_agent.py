@@ -99,6 +99,7 @@ def main():
     tfirststart = time.perf_counter()
 
     nupdates = ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH
+    logger.info(f"Number of updates: {nupdates}")
     for update in range(1, nupdates + 1):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         run_update(update, nupdates, runner, model, tfirststart)

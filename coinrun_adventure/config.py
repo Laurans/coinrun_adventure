@@ -29,7 +29,7 @@ class SingletonExpConfig:
         self.NUM_ENVS = 1
 
         self.TOTAL_TIMESTEPS = (
-            2048
+            5000
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (
@@ -44,7 +44,7 @@ class SingletonExpConfig:
         self.LAMBDA = 0.95  # advantage estimation discounting factor
         self.NUM_MINI_BATCH = (
             4
-        )  # number of training minibatches per update. For recurrent policies should be smalle of equal than number of environment run in parallel.
+        )  # number of training minibatches per update. For recurrent policies should be small of equal than number of environment run in parallel.
         self.NUM_OPT_EPOCHS = 4  # number of training epochs per update
         self.NUM_STEPS = 2048  # NOTE: rollout length
         self.CLIP_RANGE = 0.2  # clipping range, constant

@@ -11,7 +11,7 @@ if [ ! "$(docker ps -q -f name=$container_name)" ]; then
         fi
 
     else
-        docker run --gpus all -it -e DISPLAY=$DISPLAY --mount="src=/tmp/.X11-unix,dest=/tmp/.X11-unix,type=bind" --mount="src=${PWD},dst=/home/anaelle/workdir,type=bind" --name $container_name $image_name
+        docker run --gpus all -it -e DISPLAY=$DISPLAY --mount="src=/tmp/.X11-unix,dst=/tmp/.X11-unix,type=bind" --mount="src=${PWD},dst=/home/anaelle/workdir,type=bind" --name $container_name $image_name
     fi
 else
     echo "Exec"
