@@ -1,6 +1,5 @@
 import tensorflow as tf
 from .policies import PolicyWithValue
-from coinrun_adventure.config import ExpConfig
 
 
 class Model(tf.Module):
@@ -53,7 +52,7 @@ class Model(tf.Module):
             policy_latent = self.train_model.policy_network(obs)
             pd, _ = self.train_model.pdtype.pdfromlatent(policy_latent)
             neglogpac = pd.neglogp(actions)
-            entropy = tf.reduce_mean(pd.entropy)
+            entropy = tf.reduce_mean(pd.entropy())
             vpred = self.train_model.value(obs)
             vpredclipped = values + tf.clip_by_value(
                 vpred - values, -cliprange, cliprange
