@@ -1,5 +1,3 @@
-import numpy as np
-
 
 def discount_with_dones(rewards, dones, gamma):
     discounted = []

@@ -1,7 +1,7 @@
 import tensorflow as tf
-from coinrun_adventure.agents.networks import fc
+from .networks import fc
 from gym import spaces
-from coinrun_adventure.agents.distributions import DiagGaussianPdType, CategoricalPdType
+from .distributions import DiagGaussianPdType, CategoricalPdType
 
 
 def make_pdtype(latent_shape, ac_space, init_scale=1.0):

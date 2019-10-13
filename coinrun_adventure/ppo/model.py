@@ -1,5 +1,5 @@
 import tensorflow as tf
-from .policies import PolicyWithValue
+from coinrun_adventure.common.policies import PolicyWithValue
 
 
 class Model(tf.Module):

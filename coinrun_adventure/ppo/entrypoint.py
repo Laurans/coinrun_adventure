@@ -1,9 +1,9 @@
-from coinrun_adventure.agents.networks import get_network_builder
-from coinrun_adventure import setup_utils
+from coinrun_adventure.common.networks import get_network_builder
+from coinrun_adventure.utils import setup_utils
 from coinrun_adventure.config import ExpConfig
 from coinrun import make
-from coinrun_adventure.agents.model import Model
-from coinrun_adventure.agents.ppo import PPOAgent
+from coinrun_adventure.ppo.model import Model
+from coinrun_adventure.ppo.agent import PPOAgent
 import time
 from loguru import logger
 import numpy as np
@@ -65,8 +65,7 @@ def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model, tfirs
             logger.info(f"loss/{lossname} {lossval}")
 
 
-def main():
-
+def learn():
     setup_utils.setup()
     env = make("standard", num_envs=ExpConfig.NUM_ENVS)
 
@@ -103,9 +102,3 @@ def main():
     for update in range(1, nupdates + 1):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         run_update(update, nupdates, runner, model, tfirststart)
-
-    # Calculate the batchsize
-
-
-if __name__ == "__main__":
-    main()

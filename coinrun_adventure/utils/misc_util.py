@@ -1,4 +1,5 @@
 from pathlib import Path
+import tensorflow as tf
 import datetime
 
 
@@ -17,3 +18,9 @@ def mkdir(path):
 def close_obj(obj):
     if hasattr(obj, "close"):
         obj.close()
+
+
+def save_model(model, save_path):
+    ckpt = tf.train.Checkpoint(model=model)
+    manager = tf.train.CheckpointManager(ckpt, str(save_path), max_to_keep=None)
+    manager.save()
