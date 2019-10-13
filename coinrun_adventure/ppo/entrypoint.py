@@ -1,30 +1,26 @@
 from coinrun_adventure.common.networks import get_network_builder
-from coinrun_adventure.utils import setup_utils
+from coinrun_adventure.utils import setup_util, misc_util
 from coinrun_adventure.config import ExpConfig
 from coinrun import make
 from coinrun_adventure.ppo.model import Model
 from coinrun_adventure.ppo.agent import PPOAgent
 import time
-from loguru import logger
 import numpy as np
 import tensorflow as tf
+from coinrun_adventure.logger import get_metric_logger
 
 
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
 
 
-def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model, tfirststart):
+def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model):
     # Start timer
-    tstart = time.perf_counter()
     frac = 1.0 - (update - 1.0) / nupdates
 
     # Calculate the learning rate
     lrnow = ExpConfig.LR_FN(frac)
     cliprangenow = ExpConfig.CLIP_RANGE_FN(frac)
-
-    if update % ExpConfig.LOG_INTERVAL == 0:
-        logger.info("Stepping environment...")
 
     # Get minibatch
     obs, returns, masks, actions, values, neglogpacs = runner.run()
@@ -48,25 +44,12 @@ def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model, tfirs
 
     # Feedforward --> get losses --> updates
     lossvals = np.mean(mblossvals, axis=0)
-    # End timer
-    tnow = time.perf_counter()
-
-    # Calculate the fps
-    fps = int(ExpConfig.NBATCH / (tnow - tstart))
-
-    if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
-        # TODO: Logging
-        logger.info(f"misc/serial_timesteps {update*ExpConfig.NUM_STEPS}")
-        logger.info(f"misc/nupdates {update}")
-        logger.info(f"misc/total_timesteps {update*ExpConfig.NBATCH}")
-        logger.info(f"fps {fps}")
-        logger.info(f"misc/time_elapsed {tnow - tfirststart}")
-        for (lossval, lossname) in zip(lossvals, model.loss_names):
-            logger.info(f"loss/{lossname} {lossval}")
+    return lossvals
 
 
-def learn():
-    setup_utils.setup()
+def learn(exp_folder_path):
+    metric_logger = get_metric_logger(dir=exp_folder_path)
+    setup_util.setup()
     env = make("standard", num_envs=ExpConfig.NUM_ENVS)
 
     # Get state_space and action_space
@@ -98,7 +81,33 @@ def learn():
     tfirststart = time.perf_counter()
 
     nupdates = ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH
-    logger.info(f"Number of updates: {nupdates}")
     for update in range(1, nupdates + 1):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
-        run_update(update, nupdates, runner, model, tfirststart)
+        # Start timer
+        tstart = time.perf_counter()
+
+        # Run an update
+        lossvals = run_update(update, nupdates, runner, model)
+
+        # End timer
+        tnow = time.perf_counter()
+
+        # Calculate the fps
+        fps = int(ExpConfig.NBATCH / (tnow - tstart))
+
+        if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
+            # todo: logging
+            metric_logger.logkv("misc/serial_timesteps", update * ExpConfig.NUM_STEPS)
+            metric_logger.logkv("misc/nupdates", update)
+            metric_logger.logkv("misc/total_timesteps", update * ExpConfig.NBATCH)
+            metric_logger.logkv("fps", fps)
+            metric_logger.logkv("misc/time_elapsed", tnow - tfirststart)
+            for (lossval, lossname) in zip(lossvals, model.loss_names):
+                metric_logger.logkv(f"loss/{lossname}", lossval)
+
+            metric_logger.dumpkvs()
+
+        if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
+            misc_util.save_model(model, exp_folder_path / "auto_save")
+
+    misc_util.save_model(model, exp_folder_path / "last_model")

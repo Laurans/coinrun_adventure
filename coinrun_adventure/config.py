@@ -1,4 +1,5 @@
 from coinrun.config import Config
+from pathlib import Path
 
 
 def constfn(val):
@@ -20,8 +21,8 @@ class SingletonExpConfig:
     def init(self):
         self.ENV_CONFIG = Config
         self.DEVICE = "gpu"
-        # self.WORKDIR = "../workdir/"
         self.TB_DIR = "/tmp/tensorflow"
+        self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
         self.NUM_WORKERS = 1
         self.NUM_ENVS = 1
@@ -40,9 +41,9 @@ class SingletonExpConfig:
         self.MAX_GRAD_NORM = 0.5  # Gradient norm clipping coefficient
         self.GAMMA = 0.99  # discounting factor
         self.LAMBDA = 0.95  # advantage estimation discounting factor
-        self.NUM_MINI_BATCH = (
-            4
-        )  # number of training minibatches per update. For recurrent policies should be small of equal than number of environment run in parallel.
+        # number of training minibatches per update. For recurrent policies should be small of
+        # equal than number of environment run in parallel.
+        self.NUM_MINI_BATCH = 4
         self.NUM_OPT_EPOCHS = 4  # number of training epochs per update
         self.NUM_STEPS = 2048  # NOTE: rollout length
         self.CLIP_RANGE = 0.2  # clipping range, constant
@@ -96,12 +97,6 @@ class SingletonExpConfig:
 
         if isinstance(self.CLIP_RANGE, float):
             self.CLIP_RANGE_FN = constfn(self.CLIP_RANGE)
-
-    def get_load_filename(self):
-        pass
-
-    def get_save_path(self):
-        pass
 
     def merge(self, config_dict):
         for key in config_dict:
