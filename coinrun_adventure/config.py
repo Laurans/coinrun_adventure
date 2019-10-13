@@ -1,5 +1,3 @@
-import pathlib
-import os
 from coinrun.config import Config
 
 
