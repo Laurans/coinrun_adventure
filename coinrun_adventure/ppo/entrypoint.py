@@ -47,28 +47,30 @@ def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model):
     return lossvals
 
 
-def learn(exp_folder_path):
-    metric_logger = get_metric_logger(dir=exp_folder_path)
-    setup_util.setup()
-    env = make("standard", num_envs=ExpConfig.NUM_ENVS)
-
-    # Get state_space and action_space
-    ob_space = env.observation_space
-    ac_space = env.action_space
-
+def get_model():
     policy_network_fn = get_network_builder(ExpConfig.ARCHITECTURE)()
-    network = policy_network_fn(ob_space.shape)
+    network = policy_network_fn(ExpConfig.OB_SPACE)
 
     model_fn = Model
 
     model = model_fn(
-        ac_space=ac_space,
+        ac_space=ExpConfig.AC_SPACE,
         policy_network=network,
         value_network=None,
         ent_coef=ExpConfig.ENTROPY_WEIGHT,
         vf_coef=ExpConfig.VALUE_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
     )
+
+    return model
+
+
+def learn(exp_folder_path):
+    metric_logger = get_metric_logger(dir=exp_folder_path)
+    setup_util.setup()
+    env = make("standard", num_envs=ExpConfig.NUM_ENVS)
+
+    model = get_model()
 
     runner = PPOAgent(
         env=env,

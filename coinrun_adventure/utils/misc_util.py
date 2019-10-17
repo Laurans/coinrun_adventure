@@ -24,3 +24,10 @@ def save_model(model, save_path):
     ckpt = tf.train.Checkpoint(model=model)
     manager = tf.train.CheckpointManager(ckpt, str(save_path), max_to_keep=None)
     manager.save()
+
+
+def restore_model(model, save_path):
+    ckpt = tf.train.Checkpoint(model=model)
+    ckpt.restore(tf.train.latest_checkpoint(save_path))
+    return model
+
