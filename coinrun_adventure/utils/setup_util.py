@@ -16,6 +16,9 @@ def common_arg_parser():
         "--train", help="Train the agent", default=False, action="store_true"
     )
     parser.add_argument(
+        "--test", help="Test the agent (metrics)", default=False, action="store_true"
+    )
+    parser.add_argument(
         "--play", help="Play an episode", default=False, action="store_true"
     )
     parser.add_argument("--exp", help="Folder path to the experience")
