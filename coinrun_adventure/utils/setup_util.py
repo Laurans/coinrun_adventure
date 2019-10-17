@@ -18,5 +18,6 @@ def common_arg_parser():
     parser.add_argument(
         "--play", help="Play an episode", default=False, action="store_true"
     )
+    parser.add_argument("--exp", help="Folder path to the experience")
 
     return parser
