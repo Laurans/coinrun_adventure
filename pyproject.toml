@@ -17,6 +17,7 @@ matplotlib = "^3.1"
 gym = "^0.14.0"
 names = "^0.3.0"
 tensorflow-gpu = {path = "wheels/tensorflow_gpu-2.0.0-cp37-cp37m-manylinux2010_x86_64.whl"}
+dataclasses-serialization = "^1.2"
 
 
 [tool.poetry.dev-dependencies]
