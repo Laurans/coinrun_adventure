@@ -15,3 +15,10 @@ curl
 mpich
 qt5-default
 xvfb
+python3-tk
+libgl1-mesa-dev
+libglew-dev 
+libsdl2-dev 
+libsdl2-image-dev 
+libglm-dev 
+libfreetype6-dev

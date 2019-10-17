@@ -8,7 +8,8 @@ ARG NB_GID=1000
 # Configure environment
 ENV NB_USER=$NB_USER \
     NB_UID=$NB_UID \
-    NB_GID=$NB_GID
+    NB_GID=$NB_GID \
+    DEBIAN_FRONTEND=noninteractive 
 
 ENV HOME=/home/$NB_USER 
 
