@@ -1,4 +1,5 @@
 from mpi4py import MPI
+from gym import spaces
 
 
 class SingletonConfig:
@@ -52,11 +53,12 @@ class SingletonConfig:
         # Use high resolution images for rendering
         ##
         self.IS_HIGH_RES = False
-        # if not pathlib.Path(self.WORKDIR).exists():
-        #     os.makedirs(self.WORKDIR, exist_ok=True)
 
         self.TEST_EVAL = False
         self.TEST = False
+
+        self.OB_SPACE = (64, 64, 3)
+        self.AC_SPACE = spaces.Discrete(7)
 
         self.compute_args_dependencies()
 
