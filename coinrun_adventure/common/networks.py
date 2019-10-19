@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from loguru import logger
+from tensorflow.keras import layers
 
 mapping = {}
 
@@ -57,80 +57,43 @@ def conv(
     return layer
 
 
-def fc(scope, *, input_shape, units, init_scale=1.0, init_bias=0.0):
+@register("fc")
+def fc(scope, *, x_input, units, init_scale=1.0, init_bias=0.0):
     with tf.name_scope(scope):
         layer = tf.keras.layers.Dense(
             units=units,
             kernel_initializer=ortho_init(init_scale),
             bias_initializer=tf.keras.initializers.Constant(init_bias),
-        )
-        layer.build(input_shape)
+        )(x_input)
 
     return layer
 
 
-@register("mlp")
-def mlp(num_layers=2, num_hidden=64, activation=tf.tanh):
-    """
-    Stack of fully-connected layers to be used in a policy / q-function approximator
-    Returns a function that builds fully connected network with a given input / placeholder
-    """
-
-    def network_fn(input_shape):
-        logger.info(f"input shape is {input_shape}")
-        x_input = tf.keras.Input(shape=input_shape)
-
-        h = x_input
-        for i in range(num_layers):
-            h = tf.keras.layers.Dense(
-                units=num_hidden,
-                kernel_initializer=ortho_init(np.sqrt(2)),
-                name=f"mlp_fc{i}",
-                activation=activation,
-            )(h)
-
-        network = tf.keras.Model(inputs=[x_input], outputs=[h])
-        return network
-
-    return network_fn
-
-
 @register("nature-cnn")
-def nature_cnn():
-    def network_fn(input_shape):
-        """
-        CNN from Nature paper.
-        """
-        logger.info(f"input shape is {input_shape}")
-        x_input = tf.keras.Input(shape=input_shape, dtype=tf.uint8)
-        h = x_input
-        h = tf.cast(h, tf.float32) / 255.0
-        h = conv(
-            "c1", nf=32, ks=8, strides=4, activation="relu", init_scale=np.sqrt(2)
-        )(h)
-        h2 = conv(
-            "c2", nf=64, ks=4, strides=2, activation="relu", init_scale=np.sqrt(2)
-        )(h)
-        h3 = conv(
-            "c3", nf=64, ks=3, strides=1, activation="relu", init_scale=np.sqrt(2)
-        )(h2)
-        h3 = tf.keras.layers.Flatten()(h3)
-        h3 = tf.keras.layers.Dense(
-            units=512,
-            kernel_initializer=ortho_init(np.sqrt(2)),
-            name="fc1",
-            activation="relu",
-        )(h3)
-        network = tf.keras.Model(inputs=[x_input], outputs=[h3])
-        return network
+def nature_cnn(x_input):
+    """
+    CNN from Nature paper.
+    """
+    h = x_input
+    h = tf.cast(h, tf.float32) / 255.0
+    h = conv("c1", nf=32, ks=8, strides=4, activation="relu", init_scale=np.sqrt(2))(h)
+    h2 = conv("c2", nf=64, ks=4, strides=2, activation="relu", init_scale=np.sqrt(2))(h)
+    h3 = conv("c3", nf=64, ks=3, strides=1, activation="relu", init_scale=np.sqrt(2))(
+        h2
+    )
+    h3 = tf.keras.layers.Flatten()(h3)
+    h3 = tf.keras.layers.Dense(
+        units=512,
+        kernel_initializer=ortho_init(np.sqrt(2)),
+        name="fc1",
+        activation="relu",
+    )(h3)
 
-    return network_fn
+    return h3
 
 
 def get_network_builder(name):
-    if callable(name):
-        return name
-    elif name in mapping:
+    if name in mapping:
         return mapping[name]
     else:
         raise ValueError("Unknown network type: {}".format(name))

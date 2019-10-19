@@ -3,18 +3,21 @@ from coinrun_adventure.utils import setup_util, misc_util
 from coinrun_adventure.config import ExpConfig
 from coinrun import make
 from coinrun_adventure.ppo.model import Model
-from coinrun_adventure.ppo.agent import PPOAgent
+from coinrun_adventure.ppo.agent import PPORunner
 import time
 import numpy as np
 import tensorflow as tf
-from coinrun_adventure.logger import get_metric_logger
+from coinrun_adventure.logger import get_metric_logger, Logger
+from typing import Union, List
+from pathlib import Path
+from coinrun.common.vec_env import VecEnv
 
 
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
 
 
-def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model):
+def run_update(update: int, nupdates: int, runner: PPORunner, model: Model):
     # Start timer
     frac = 1.0 - (update - 1.0) / nupdates
 
@@ -48,15 +51,14 @@ def run_update(update: int, nupdates: int, runner: PPOAgent, model: Model):
 
 
 def get_model():
-    policy_network_fn = get_network_builder(ExpConfig.ARCHITECTURE)()
-    network = policy_network_fn(ExpConfig.OB_SPACE)
+    # x_input = tf.keras.Input(shape=input_shape, dtype=tf.uint8)
 
     model_fn = Model
 
     model = model_fn(
+        ob_shape=ExpConfig.OB_SHAPE,
         ac_space=ExpConfig.AC_SPACE,
-        policy_network=network,
-        value_network=None,
+        policy_network_archi=ExpConfig.ARCHITECTURE,
         ent_coef=ExpConfig.ENTROPY_WEIGHT,
         vf_coef=ExpConfig.VALUE_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
@@ -65,14 +67,14 @@ def get_model():
     return model
 
 
-def learn(exp_folder_path):
-    metric_logger = get_metric_logger(dir=exp_folder_path)
+def learn(exp_folder_path: Path):
+    metric_logger: Logger = get_metric_logger(dir=exp_folder_path)
     setup_util.setup()
-    env = make("standard", num_envs=ExpConfig.NUM_ENVS)
+    env: VecEnv = make("standard", num_envs=ExpConfig.NUM_ENVS)
 
-    model = get_model()
+    model: Model = get_model()
 
-    runner = PPOAgent(
+    runner: PPORunner = PPORunner(
         env=env,
         model=model,
         num_steps=ExpConfig.NUM_STEPS,

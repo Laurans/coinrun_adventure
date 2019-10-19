@@ -3,7 +3,7 @@ import numpy as np
 from .model import Model
 
 
-class PPOAgent:
+class PPORunner:
     def __init__(self, env, model: Model, num_steps, gamma_coef, lambda_coef):
         self.env = env
         self.model = model

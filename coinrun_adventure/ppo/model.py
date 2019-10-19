@@ -1,22 +1,24 @@
 import tensorflow as tf
-from coinrun_adventure.common.policies import PolicyWithValue
+from .policies import Policy
 
 
 class Model(tf.Module):
     def __init__(
-        self, ac_space, policy_network, value_network, ent_coef, vf_coef, max_grad_norm
+        self, ob_shape, ac_space, policy_network_archi, ent_coef, vf_coef, max_grad_norm
     ):
         super().__init__(name="PPO2Model")
-        self.train_model = PolicyWithValue(
-            ac_space, policy_network, value_network, estimate_q=False
-        )
+        # self.network = PolicyWithValue(
+        #     ac_space, policy_network, value_network, estimate_q=False
+        # )
+        self.network = Policy(policy_network_archi, ob_shape, ac_space)
         self.optimizer = tf.keras.optimizers.Adam()
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
-        self.step = self.train_model.step
-        self.value = self.train_model.value
-        self.initial_state = self.train_model.initial_state
+        self.step = self.network.step
+        self.value = self.network.value
+        self.get_all_values = self.network.raw_value
+        self.initial_state = self.network.initial_state
         self.loss_names = [
             "policy_loss",
             "value_loss",
@@ -34,7 +36,7 @@ class Model(tf.Module):
         )
 
         self.optimizer.learning_rate = lr
-        grads_and_vars = zip(grads, self.train_model.trainable_variables)
+        grads_and_vars = zip(grads, self.network.trainable_variables)
         self.optimizer.apply_gradients(grads_and_vars)
 
         return pg_loss, vf_loss, entropy, approxkl, clipfrac
@@ -49,11 +51,13 @@ class Model(tf.Module):
         advs = (advs - tf.reduce_mean(advs)) / (tf.keras.backend.std(advs) + 1e-8)
 
         with tf.GradientTape() as tape:
-            policy_latent = self.train_model.policy_network(obs)
-            pd, _ = self.train_model.pdtype.pdfromlatent(policy_latent)
-            neglogpac = pd.neglogp(actions)
-            entropy = tf.reduce_mean(pd.entropy())
-            vpred = self.train_model.value(obs)
+            # policy_latent = self.network.policy_network(obs)
+            # out_pi = self.network.pi(policy_latent)
+            out_pi = self.network.pi(obs)
+            distribution = self.network.distribution(out_pi)
+            neglogpac = distribution.neglogp(actions)
+            entropy = tf.reduce_mean(distribution.entropy())
+            vpred = self.network.value(obs)
             vpredclipped = values + tf.clip_by_value(
                 vpred - values, -cliprange, cliprange
             )
@@ -73,10 +77,9 @@ class Model(tf.Module):
 
             loss = pg_loss - entropy * self.ent_coef + vf_loss * self.vf_coef
 
-        var_list = self.train_model.trainable_variables
+        var_list = self.network.trainable_variables
         grads = tape.gradient(loss, var_list)
 
         if self.max_grad_norm is not None:
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
         return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
-
