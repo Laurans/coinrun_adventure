@@ -20,21 +20,25 @@ class SingletonConfig:
         self.GAME_TYPE = "standard"
 
         # The number of levels in the training set.
-        # If NUM_LEVELS = 0, the training set is unbounded. All level seeds will be randomly generated.
+        # If NUM_LEVELS = 0, the training set is unbounded. All level seeds will be randomly
+        # generated.
         # Use SET_SEED = -1 and NUM_LEVELS = 500 to train with the same levels in the paper.
         ##
         self.NUM_LEVELS = 0
 
         # Provided as a seed for training set generation.
-        # If SET_SEED = -1, this seed is not used and level seeds with be drawn from the range [0, NUM_LEVELS).
+        # If SET_SEED = -1, this seed is not used and level seeds with be drawn from
+        # the range [0, NUM_LEVELS).
         # Use SET_SEED = -1 and NUM_LEVELS = 500 to train with the same levels in the paper.
-        # NOTE: This value must and will be saved, in order to use the same training set for evaluation and/or visualization.
+        # NOTE: This value must and will be saved, in order to use the same training set
+        # for evaluation and/or visualization.
         ##
         self.SET_SEED = -1
 
         # Should the agent's velocity be painted in the upper left corner of observations.
         # 1/0 means True/False
-        # PAINT_VEL_INFO = -1 uses smart defaulting -- will default to 1 if GAME_TYPE is 'standard' (CoinRun), 0 otherwise
+        # PAINT_VEL_INFO = -1 uses smart defaulting -- will default to 1 if GAME_TYPE is
+        # 'standard' (CoinRun), 0 otherwise
         ##
         self.PAINT_VEL_INFO = -1
 

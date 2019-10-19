@@ -1,5 +1,4 @@
 import tensorflow as tf
-from .networks import fc
 
 
 class Pd(object):
@@ -102,12 +101,3 @@ class CategoricalPd(Pd):
     @classmethod
     def fromflat(cls, flat):
         return cls(flat)
-
-
-def make_pdtype(latent_shape, ac_space, init_scale=1.0):
-    from gym import spaces
-
-    if isinstance(ac_space, spaces.Discrete):
-        return CategoricalPdType(latent_shape, ac_space.n, init_scale)
-    else:
-        raise ValueError("No implementation for {}".format(ac_space))

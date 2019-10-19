@@ -1,4 +1,3 @@
-from coinrun_adventure.common.networks import get_network_builder
 from coinrun_adventure.utils import setup_util, misc_util
 from coinrun_adventure.config import ExpConfig
 from coinrun import make
@@ -8,7 +7,6 @@ import time
 import numpy as np
 import tensorflow as tf
 from coinrun_adventure.logger import get_metric_logger, Logger
-from typing import Union, List
 from pathlib import Path
 from coinrun.common.vec_env import VecEnv
 

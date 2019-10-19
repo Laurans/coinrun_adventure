@@ -31,4 +31,3 @@ def restore_model(model, save_path):
     ckpt = tf.train.Checkpoint(model=model)
     ckpt.restore(tf.train.latest_checkpoint(save_path))
     return model
-
