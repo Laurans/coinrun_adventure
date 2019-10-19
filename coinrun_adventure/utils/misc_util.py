@@ -1,6 +1,7 @@
 from pathlib import Path
 import tensorflow as tf
 import datetime
+from typing import Union
 
 
 def get_time_str():
@@ -11,7 +12,7 @@ def get_default_log_dir(name):
     return f"./log/{name}-{get_time_str()}"
 
 
-def mkdir(path):
+def mkdir(path: Union[str, Path]):
     Path(path).mkdir(parents=True, exist_ok=True)
 
 

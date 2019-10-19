@@ -57,7 +57,7 @@ class SingletonConfig:
         self.TEST_EVAL = False
         self.TEST = False
 
-        self.OB_SPACE = (64, 64, 3)
+        self.OB_SHAPE = (64, 64, 3)
         self.AC_SPACE = spaces.Discrete(7)
 
         self.compute_args_dependencies()

@@ -1,1 +1,1 @@
-from .entrypoint import learn  # noqa
+from .entrypoint import learn, get_model  # noqa
