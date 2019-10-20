@@ -25,34 +25,36 @@ class SingletonExpConfig:
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
         self.NUM_WORKERS = 1
-        self.NUM_ENVS = 1
+        self.NUM_ENVS = 32
 
         self.TOTAL_TIMESTEPS = (
-            5000
+            256e6
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (
-            0.0
+            0.01
         )  # Policy entropy coefficient in the optimization objective
-        self.LEARNING_RATE = 3e-4  # Learning rate, constant
+        self.LEARNING_RATE = 5e-4  # Learning rate, constant
+        self.LEARNING_RATE = lambda f: f * self.LEARNING_RATE
         self.VALUE_WEIGHT = (
             0.5
         )  # Value function loss coefficient in the optimization objective
         self.MAX_GRAD_NORM = 0.5  # Gradient norm clipping coefficient
-        self.GAMMA = 0.99  # discounting factor
+        self.GAMMA = 0.999  # discounting factor
         self.LAMBDA = 0.95  # advantage estimation discounting factor
         # number of training minibatches per update. For recurrent policies should be small of
         # equal than number of environment run in parallel.
-        self.NUM_MINI_BATCH = 4
-        self.NUM_OPT_EPOCHS = 4  # number of training epochs per update
-        self.NUM_STEPS = 2048  # NOTE: rollout length
+        self.NUM_MINI_BATCH = 8
+        self.NUM_OPT_EPOCHS = 3  # number of training epochs per update
+        self.NUM_STEPS = 256  # NOTE: rollout length
         self.CLIP_RANGE = 0.2  # clipping range, constant
+        self.CLIP_RANGE = lambda f: f* self.CLIP_RANGE
 
-        self.LOG_INTERVAL = 10  # Number of timesteps betwen logging events
+        self.LOG_INTERVAL = 1  # Number of timesteps betwen logging events
 
         # The convolutional architecture to use
         # One of {'nature', 'impala', 'impalalarge'}
-        self.ARCHITECTURE = "nature-cnn"
+        self.ARCHITECTURE = "impala"
 
         # Should the model include an LSTM
         self.USE_LSTM = False
