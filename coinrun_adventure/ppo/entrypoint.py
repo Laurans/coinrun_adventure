@@ -90,7 +90,7 @@ def learn(exp_folder_path: Path):
 
     tfirststart = time.perf_counter()
 
-    nupdates = ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH
+    nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
     for update in range(1, nupdates + 1):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
