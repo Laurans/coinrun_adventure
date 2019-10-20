@@ -52,6 +52,7 @@ def conv(
             padding=padding,
             data_format=data_format,
             kernel_initializer=ortho_init(init_scale),
+            activation=activation,
         )
 
     return layer
@@ -81,8 +82,8 @@ def nature_cnn(x_input):
     h3 = conv("c3", nf=64, ks=3, strides=1, activation="relu", init_scale=np.sqrt(2))(
         h2
     )
-    h3 = tf.keras.layers.Flatten()(h3)
-    h3 = tf.keras.layers.Dense(
+    h3 = layers.Flatten()(h3)
+    h3 = layers.Dense(
         units=512,
         kernel_initializer=ortho_init(np.sqrt(2)),
         name="fc1",
@@ -90,6 +91,68 @@ def nature_cnn(x_input):
     )(h3)
 
     return h3
+
+
+@register("impala-cnn")
+def impala_cnn(x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio=0):
+    """
+    Model used in the paper "IMPALA: Scalable Distributed Deep-RL with 
+    Importance Weighted Actor-Learner Architectures" https://arxiv.org/abs/1802.01561
+    """
+
+    def conv_layer(out, depth):
+        out = layers.Conv2D(
+            filters=depth,
+            kernel_size=3,
+            padding="same",
+            data_format="channels_last",
+            activation=None,
+        )(out)
+        if dropout_ratio > 0:
+            out = layers.Dropout(dropout_ratio)(out)
+
+        if use_batch_norm:
+            out = layers.BatchNormalization(center=True, scale=True)(out)
+
+        return out
+
+    def residual_block(inputs):
+        depth = inputs.get_shape()[-1].value
+
+        out = layers.ReLU()(inputs)
+        out = conv_layer(out, depth)
+        out = layers.ReLU()(out)
+        out = conv_layer(out, depth)
+        return layers.Add()([out, inputs])
+
+    def conv_sequence(inputs, depth):
+        out = conv_layer(inputs, depth)
+        out = layers.MaxPool2D(pool_size=3, strides=2, padding="same")(out)
+        out = residual_block(out)
+        out = residual_block(out)
+        return out
+
+    out = x_input
+    for depth in depths:
+        out = conv_sequence(out, depths)
+
+    out = layers.Flatten()(out)
+    out = layers.ReLU()(out)
+    out = layers.Dense(units=256, activation="relu")
+
+    return out
+
+
+@register("impala-cnn-large")
+def impala_cnn_large(
+    x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio=0
+):
+    return impala_cnn(
+        x_input,
+        depths=[32, 64, 64, 64, 64],
+        use_batch_norm=use_batch_norm,
+        dropout_ratio=dropout_ratio,
+    )
 
 
 def get_network_builder(name):
