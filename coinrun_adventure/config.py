@@ -35,7 +35,7 @@ class SingletonExpConfig:
             0.01
         )  # Policy entropy coefficient in the optimization objective
         self.LEARNING_RATE = 5e-4  # Learning rate, constant
-        self.LEARNING_RATE = lambda f: f * self.LEARNING_RATE
+        self.LR_FN = lambda f: f * self.LEARNING_RATE
         self.VALUE_WEIGHT = (
             0.5
         )  # Value function loss coefficient in the optimization objective
@@ -48,7 +48,7 @@ class SingletonExpConfig:
         self.NUM_OPT_EPOCHS = 3  # number of training epochs per update
         self.NUM_STEPS = 256  # NOTE: rollout length
         self.CLIP_RANGE = 0.2  # clipping range, constant
-        self.CLIP_RANGE = lambda f: f* self.CLIP_RANGE
+        self.CLIP_RANGE_FN = lambda f: f* self.CLIP_RANGE
 
         self.LOG_INTERVAL = 1  # Number of timesteps betwen logging events
 
@@ -94,11 +94,11 @@ class SingletonExpConfig:
 
         self.NBATCH = self.NUM_ENVS * self.NUM_STEPS
         self.NBATCH_TRAIN = self.NBATCH // self.NUM_MINI_BATCH
-        if isinstance(self.LEARNING_RATE, float):
-            self.LR_FN = constfn(self.LEARNING_RATE)
+        # if isinstance(self.LEARNING_RATE, float):
+        #     self.LR_FN = constfn(self.LEARNING_RATE)
 
-        if isinstance(self.CLIP_RANGE, float):
-            self.CLIP_RANGE_FN = constfn(self.CLIP_RANGE)
+        # if isinstance(self.CLIP_RANGE, float):
+        #     self.CLIP_RANGE_FN = constfn(self.CLIP_RANGE)
 
     def merge(self, config_dict):
         for key in config_dict:
