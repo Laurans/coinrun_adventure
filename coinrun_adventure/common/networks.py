@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
+from coinrun_adventure.config import ExpConfig
 
 mapping = {}
 
@@ -70,7 +71,7 @@ def fc(scope, *, x_input, units, init_scale=1.0, init_bias=0.0):
     return layer
 
 
-@register("nature-cnn")
+@register("nature")
 def nature_cnn(x_input):
     """
     CNN from Nature paper.
@@ -93,12 +94,15 @@ def nature_cnn(x_input):
     return h3
 
 
-@register("impala-cnn")
-def impala_cnn(x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio=0):
+@register("impala")
+def impala_cnn(x_input, depths=[16, 32, 32]):
     """
     Model used in the paper "IMPALA: Scalable Distributed Deep-RL with 
     Importance Weighted Actor-Learner Architectures" https://arxiv.org/abs/1802.01561
     """
+
+    use_batch_norm = ExpConfig.USE_BATCH_NORM
+    dropout_ratio = ExpConfig.DROPOUT
 
     def conv_layer(out, depth):
         out = layers.Conv2D(
@@ -117,7 +121,7 @@ def impala_cnn(x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio
         return out
 
     def residual_block(inputs):
-        depth = inputs.get_shape()[-1].value
+        depth = inputs.shape[-1]
 
         out = layers.ReLU()(inputs)
         out = conv_layer(out, depth)
@@ -135,25 +139,18 @@ def impala_cnn(x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio
     out = x_input
     out = tf.cast(out, tf.float32) / 255.0
     for depth in depths:
-        out = conv_sequence(out, depths)
+        out = conv_sequence(out, depth)
 
     out = layers.Flatten()(out)
     out = layers.ReLU()(out)
-    out = layers.Dense(units=256, activation="relu")
+    out = layers.Dense(units=256, activation="relu")(out)
 
     return out
 
 
-@register("impala-cnn-large")
-def impala_cnn_large(
-    x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio=0
-):
-    return impala_cnn(
-        x_input,
-        depths=[32, 64, 64, 64, 64],
-        use_batch_norm=use_batch_norm,
-        dropout_ratio=dropout_ratio,
-    )
+@register("impalalarge")
+def impala_cnn_large(x_input, depths=[16, 32, 32]):
+    return impala_cnn(x_input, depths=[32, 64, 64, 64, 64])
 
 
 def get_network_builder(name):

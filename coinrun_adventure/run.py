@@ -14,6 +14,7 @@ from tf_explain.utils.display import heatmap_display
 
 from coinrun import make
 from coinrun_adventure.common import Metadata, Step
+from coinrun_adventure.common.mpi_util import setup_mpi_gpus
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo import get_model, learn
 from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, setup
@@ -131,9 +132,10 @@ def main(args_list: list):
     args, _ = arg_parser.parse_known_args(args_list)
 
     if args.train:
-        dirname = names.get_first_name() + "_" + time.strftime("%Y%m%d_%H%M")
+        dirname = time.strftime("%Y%m%d_%H%M") + "_" + names.get_first_name()
         destination = ExpConfig.SAVE_DIR / dirname
         mkdir(destination)
+        setup_mpi_gpus()
         learn(destination)
 
     if args.test:

@@ -9,6 +9,12 @@ import tensorflow as tf
 from coinrun_adventure.logger import get_metric_logger, Logger
 from pathlib import Path
 from coinrun.common.vec_env import VecEnv
+from loguru import logger as log
+
+try:
+    from mpi4py import MPI
+except ImportError:
+    MPI = None
 
 
 def safemean(xs):
@@ -66,9 +72,11 @@ def get_model():
 
 
 def learn(exp_folder_path: Path):
-    metric_logger: Logger = get_metric_logger(dir=exp_folder_path)
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
     setup_util.setup()
     env: VecEnv = make("standard", num_envs=ExpConfig.NUM_ENVS)
+
+    is_mpi_root = MPI is None or MPI.COMM_WORLD.Get_rank() == 0
 
     model: Model = get_model()
 
@@ -87,6 +95,9 @@ def learn(exp_folder_path: Path):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
         tstart = time.perf_counter()
+
+        if update % ExpConfig.LOG_INTERVAL == 0 or is_mpi_root:
+            log.info("Stepping environment...")
 
         # Run an update
         lossvals = run_update(update, nupdates, runner, model)

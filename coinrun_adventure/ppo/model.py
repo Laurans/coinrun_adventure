@@ -1,17 +1,26 @@
 import tensorflow as tf
 from .policies import Policy
 
+try:
+    from coinrun_adventure.common.mpi_adam_optimizer import MpiAdamOptimizer
+    from mpi4py import MPI
+    from coinrun_adventure.common.mpi_util import sync_from_root
+except ImportError:
+    MPI = None
+
 
 class Model(tf.Module):
     def __init__(
         self, ob_shape, ac_space, policy_network_archi, ent_coef, vf_coef, max_grad_norm
     ):
         super().__init__(name="PPO2Model")
-        # self.network = PolicyWithValue(
-        #     ac_space, policy_network, value_network, estimate_q=False
-        # )
         self.network = Policy(policy_network_archi, ob_shape, ac_space)
-        self.optimizer = tf.keras.optimizers.Adam()
+        if MPI is not None:
+            self.optimizer = MpiAdamOptimizer(
+                MPI.COMM_WORLD, self.network.trainable_variables
+            )
+        else:
+            self.optimizer = tf.keras.optimizers.Adam()
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
@@ -26,6 +35,8 @@ class Model(tf.Module):
             "approxkl",
             "clipfrac",
         ]
+        if MPI is not None:
+            sync_from_root(self.variables)
 
     def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpac_old):
         """
@@ -35,9 +46,12 @@ class Model(tf.Module):
             cliprange, obs, returns, masks, actions, values, neglogpac_old
         )
 
-        self.optimizer.learning_rate = lr
-        grads_and_vars = zip(grads, self.network.trainable_variables)
-        self.optimizer.apply_gradients(grads_and_vars)
+        if MPI is not None:
+            self.optimizer.apply_gradients(grads, lr)
+        else:
+            self.optimizer.learning_rate = lr
+            grads_and_vars = zip(grads, self.network.trainable_variables)
+            self.optimizer.apply_gradients(grads_and_vars)
 
         return pg_loss, vf_loss, entropy, approxkl, clipfrac
 
@@ -82,4 +96,7 @@ class Model(tf.Module):
 
         if self.max_grad_norm is not None:
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
+
+        if MPI is not None:
+            grads = tf.concat([tf.reshape(g, (-1,)) for g in grads], axis=0)
         return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
