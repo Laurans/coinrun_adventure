@@ -1,5 +1,5 @@
 import tensorflow as tf
-from coinrun_adventure.common.networks import get_network_builder, fc
+from coinrun_adventure.common.networks import get_network_builder
 from gym import spaces
 from coinrun_adventure.common import CategoricalPd
 
