@@ -133,6 +133,7 @@ def impala_cnn(x_input, depths=[16, 32, 32], use_batch_norm=False, dropout_ratio
         return out
 
     out = x_input
+    out = tf.cast(out, tf.float32) / 255.0
     for depth in depths:
         out = conv_sequence(out, depths)
 
