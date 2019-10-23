@@ -9,6 +9,7 @@ from coinrun_adventure.logger import get_metric_logger, Logger
 from pathlib import Path
 from loguru import logger as logo
 from collections import deque
+import datetime
 
 
 def safemean(xs):
@@ -81,9 +82,6 @@ def learn(exp_folder_path: Path, env):
 
     epinfobuf10 = deque(maxlen=10)
     epinfobuf100 = deque(maxlen=100)
-    active_ep_buf = epinfobuf100
-    mean_rewards = []
-    datapoints = []
 
     tfirststart = time.perf_counter()
 
@@ -107,24 +105,29 @@ def learn(exp_folder_path: Path, env):
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
             step = update * ExpConfig.NBATCH
-            rew_mean_10 = misc_util.process_ep_buf(active_ep_buf)
-            ep_len_mean = np.nanmean([epinfo["l"] for epinfo in active_ep_buf])
+            rew_mean_100 = misc_util.process_ep_buf(epinfobuf100)
+            rew_mean_10 = misc_util.process_ep_buf(epinfobuf10)
+            ep_len_mean = np.nanmean([epinfo["l"] for epinfo in epinfobuf100])
             # TODO: Logging
 
-            mean_rewards.append(rew_mean_10)
-            datapoints.append([step, rew_mean_10])
+            time_elapsed = tnow - tfirststart
+            completion_perc = (update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS)
+            time_remaining = datetime.timedelta(seconds=(time_elapsed / completion_perc - time_elapsed))
+
 
             metric_logger.logkv("misc/serial_timesteps", update * ExpConfig.NUM_STEPS)
             metric_logger.logkv("misc/nupdates", update)
             metric_logger.logkv("misc/total_timesteps", update * ExpConfig.NBATCH)
             metric_logger.logkv("fps", fps)
-            metric_logger.logkv("misc/time_elapsed", tnow - tfirststart)
-            metric_logger.logkv("episode/length_mean", ep_len_mean)
+            metric_logger.logkv("misc/time_elapsed", time_elapsed )
+            metric_logger.logkv("episode/length_mean_100", ep_len_mean)
+            metric_logger.logkv("episode/rew_mean_100", rew_mean_100)
             metric_logger.logkv("episode/rew_mean_10", rew_mean_10)
             metric_logger.logkv(
                 "misc/completion_training",
-                update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS,
+                completion_perc,
             )
+            logo.info(f"Time remaining {time_remaining}")
 
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 metric_logger.logkv(f"loss/{lossname}", lossval)
