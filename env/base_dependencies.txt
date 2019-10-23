@@ -16,3 +16,4 @@ mpich
 qt5-default
 xvfb
 python3-tk
+libhdf5-dev
