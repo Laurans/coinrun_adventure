@@ -9,9 +9,10 @@ from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo import get_model, learn
 from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, setup
 from coinrun_adventure.common import add_final_wrappers
-from mpi4py import MPI
-from baselines.common import set_global_seeds
 from coinrun import make
+
+import os
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 
 def main(args_list: list):
@@ -19,11 +20,6 @@ def main(args_list: list):
     args, _ = arg_parser.parse_known_args(args_list)
 
     if args.train:
-        comm = MPI.COMM_WORLD
-        rank = comm.Get_rank()
-
-        seed = int(time.time()) % 10000
-        set_global_seeds(seed * 100 + rank)
         setup()
 
         env = make("standard", num_envs=ExpConfig.NUM_ENVS)
