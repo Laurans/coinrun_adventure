@@ -60,11 +60,11 @@ class Model(tf.Module):
         weight_params = [v for v in var_list if "/b" not in v.name]
 
         with tf.GradientTape() as tape:
-            out_pi = self.network.pi(obs)
+            out_pi = self.network.pi(obs, training=True)
             distribution = self.network.distribution(out_pi)
             neglogpac = distribution.neglogp(actions)
             entropy = tf.reduce_mean(distribution.entropy())
-            vpred = self.network.value(obs)
+            vpred = self.network.value(obs, training=True)
             vpredclipped = values + tf.clip_by_value(
                 vpred - values, -cliprange, cliprange
             )
