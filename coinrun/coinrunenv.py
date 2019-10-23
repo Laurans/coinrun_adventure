@@ -14,7 +14,8 @@ import gym
 import gym.spaces
 import numpy as np
 import numpy.ctypeslib as npct
-from coinrun.common.vec_env import VecEnv
+
+from baselines.common.vec_env import VecEnv
 from loguru import logger
 
 from coinrun.config import Config
