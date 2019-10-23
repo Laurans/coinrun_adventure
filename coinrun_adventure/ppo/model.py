@@ -36,6 +36,8 @@ class Model(tf.Module):
         """
         Make the training part (feedforward and retropropagation of gradients)
         """
+        self.network.pi.trainable = True
+        self.network.value.trainable = True
         grads, pg_loss, vf_loss, entropy, approxkl, clipfrac = self.get_grad(
             cliprange, obs, returns, masks, actions, values, neglogpac_old
         )
@@ -60,11 +62,11 @@ class Model(tf.Module):
         weight_params = [v for v in var_list if "/b" not in v.name]
 
         with tf.GradientTape() as tape:
-            out_pi = self.network.pi(obs, training=True)
+            out_pi = self.network.pi(obs)
             distribution = self.network.distribution(out_pi)
             neglogpac = distribution.neglogp(actions)
             entropy = tf.reduce_mean(distribution.entropy())
-            vpred = self.network.value(obs, training=True)
+            vpred = self.network.value(obs)
             vpredclipped = values + tf.clip_by_value(
                 vpred - values, -cliprange, cliprange
             )
