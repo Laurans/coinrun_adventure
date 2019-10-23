@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-cudnn7-runtime
+FROM nvidia/cuda:10.0-cudnn7-runtime
 
 ARG NB_USER=vscode
 ARG NB_UID=1000
