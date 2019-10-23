@@ -7,7 +7,6 @@ import numpy as np
 import tensorflow as tf
 from coinrun_adventure.logger import get_metric_logger, Logger
 from pathlib import Path
-from coinrun.common.vec_env import VecEnv
 from loguru import logger as logo
 from collections import deque
 
@@ -59,13 +58,14 @@ def get_model():
         policy_network_archi=ExpConfig.ARCHITECTURE,
         ent_coef=ExpConfig.ENTROPY_WEIGHT,
         vf_coef=ExpConfig.VALUE_WEIGHT,
+        l2_coef=ExpConfig.L2_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
     )
 
     return model
 
 
-def learn(exp_folder_path: Path, env: VecEnv):
+def learn(exp_folder_path: Path, env):
 
     metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
 

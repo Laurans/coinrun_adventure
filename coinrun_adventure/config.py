@@ -24,11 +24,10 @@ class SingletonExpConfig:
 
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
-        self.NUM_WORKERS = 1
         self.NUM_ENVS = 32
 
         self.TOTAL_TIMESTEPS = (
-            256e6
+            1e8
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (
@@ -61,11 +60,14 @@ class SingletonExpConfig:
 
         # Should batch normalization be used after each convolutional layer
         # NOTE: Only applies to IMPALA and IMPALA-Large architectures
-        self.USE_BATCH_NORM = False
+        self.USE_BATCH_NORM = True
 
         # What dropout probability to use after each convolutional layer
         # NOTE: Only applies to IMPALA and IMPALA-Large architectures
         self.DROPOUT = 0.0
+
+        # The L2 penalty to use during training
+        self.L2_WEIGHT = 1e-4
 
         # The probability the agent's action is replaced with a random action
         self.EPSILON_GREEDY = 0.0

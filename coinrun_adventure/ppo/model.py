@@ -4,13 +4,21 @@ from .policies import Policy
 
 class Model(tf.Module):
     def __init__(
-        self, ob_shape, ac_space, policy_network_archi, ent_coef, vf_coef, max_grad_norm
+        self,
+        ob_shape,
+        ac_space,
+        policy_network_archi,
+        ent_coef,
+        vf_coef,
+        l2_coef,
+        max_grad_norm,
     ):
         super().__init__(name="PPO2Model")
         self.network = Policy(policy_network_archi, ob_shape, ac_space)
         self.optimizer = tf.keras.optimizers.Adam()
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
+        self.l2_coef = l2_coef
         self.max_grad_norm = max_grad_norm
         self.step = self.network.step
         self.value = self.network.value
@@ -33,6 +41,7 @@ class Model(tf.Module):
         )
 
         self.optimizer.learning_rate = lr
+        self.optimizer.epsilon = 1e-5
         grads_and_vars = zip(grads, self.network.trainable_variables)
         self.optimizer.apply_gradients(grads_and_vars)
 
@@ -47,9 +56,10 @@ class Model(tf.Module):
         # Normalize the advantages
         advs = (advs - tf.reduce_mean(advs)) / (tf.keras.backend.std(advs) + 1e-8)
 
+        var_list = self.network.trainable_variables
+        weight_params = [v for v in var_list if "/b" not in v.name]
+
         with tf.GradientTape() as tape:
-            # policy_latent = self.network.policy_network(obs)
-            # out_pi = self.network.pi(policy_latent)
             out_pi = self.network.pi(obs)
             distribution = self.network.distribution(out_pi)
             neglogpac = distribution.neglogp(actions)
@@ -72,9 +82,16 @@ class Model(tf.Module):
                 tf.cast(tf.greater(tf.abs(ratio - 1.0), cliprange), tf.float32)
             )
 
-            loss = pg_loss - entropy * self.ent_coef + vf_loss * self.vf_coef
+            l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
 
-        var_list = self.network.trainable_variables
+            loss = (
+                pg_loss
+                - entropy * self.ent_coef
+                + vf_loss * self.vf_coef
+                + l2_loss
+                + self.l2_coef
+            )
+
         grads = tape.gradient(loss, var_list)
 
         if self.max_grad_norm is not None:

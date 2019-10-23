@@ -13,7 +13,7 @@ class SingletonConfig:
 
     def init(self):
 
-        self.NUM_WORKERS = 1  # NOTE: Aka num_envs
+        self.NUM_WORKERS = 1
 
         # One of {'standard', 'platform', 'maze'} (for CoinRun, CoinRun-Platforms, Random-Mazes)
         ##
@@ -24,7 +24,7 @@ class SingletonConfig:
         # generated.
         # Use SET_SEED = -1 and NUM_LEVELS = 500 to train with the same levels in the paper.
         ##
-        self.NUM_LEVELS = 0
+        self.NUM_LEVELS = 500
 
         # Provided as a seed for training set generation.
         # If SET_SEED = -1, this seed is not used and level seeds with be drawn from
@@ -44,7 +44,7 @@ class SingletonConfig:
 
         # Should data augmentation be used
         ##
-        self.USE_DATA_AUGMENTATION = False
+        self.USE_DATA_AUGMENTATION = True
 
         # Should observation be transformed to grayscale
         ##
