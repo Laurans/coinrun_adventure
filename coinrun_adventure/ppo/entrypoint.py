@@ -72,7 +72,7 @@ def learn(exp_folder_path: Path, env: VecEnv):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
 
-    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path, rank=rank)
 
     model: Model = get_model()
 
@@ -133,6 +133,10 @@ def learn(exp_folder_path: Path, env: VecEnv):
             metric_logger.logkv("misc/time_elapsed", tnow - tfirststart)
             metric_logger.logkv("episode/length_mean", ep_len_mean)
             metric_logger.logkv("episode/rew_mean_10", rew_mean_10)
+            metric_logger.logkv(
+                "misc/completion_training",
+                update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS,
+            )
 
             for (lossval, lossname) in zip(lossvals, model.loss_names):
                 metric_logger.logkv(f"loss/{lossname}", lossval)
