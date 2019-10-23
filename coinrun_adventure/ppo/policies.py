@@ -63,4 +63,3 @@ class Policy(tf.Module):
     def value(self, observation):
         result = tf.squeeze(self.value_fc(observation), axis=1)
         return result
-

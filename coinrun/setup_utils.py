@@ -6,4 +6,3 @@ def setup(**kwargs):
     from coinrun.coinrunenv import init_args_and_threads
 
     init_args_and_threads(4)
-
