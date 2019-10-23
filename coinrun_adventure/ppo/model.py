@@ -1,21 +1,25 @@
 import tensorflow as tf
 from .policies import Policy
 
-try:
-    from coinrun_adventure.common.mpi_adam_optimizer import MpiAdamOptimizer
-    from mpi4py import MPI
-    from coinrun_adventure.common.mpi_util import sync_from_root
-except ImportError:
-    MPI = None
+from coinrun_adventure.utils.mpi_adam_optimizer import MpiAdamOptimizer
+from mpi4py import MPI
+from coinrun_adventure.utils.mpi_util import sync_from_root
 
 
 class Model(tf.Module):
     def __init__(
-        self, ob_shape, ac_space, policy_network_archi, ent_coef, vf_coef, max_grad_norm
+        self,
+        ob_shape,
+        ac_space,
+        policy_network_archi,
+        ent_coef,
+        vf_coef,
+        max_grad_norm,
+        mode_sync_from_root,
     ):
         super().__init__(name="PPO2Model")
         self.network = Policy(policy_network_archi, ob_shape, ac_space)
-        if MPI is not None:
+        if mode_sync_from_root:
             self.optimizer = MpiAdamOptimizer(
                 MPI.COMM_WORLD, self.network.trainable_variables
             )
@@ -35,7 +39,8 @@ class Model(tf.Module):
             "approxkl",
             "clipfrac",
         ]
-        if MPI is not None:
+
+        if mode_sync_from_root:
             sync_from_root(self.variables)
 
     def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpac_old):
