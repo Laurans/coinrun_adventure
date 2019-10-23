@@ -13,7 +13,7 @@ class KVWriter:
 
 
 class LoguruOutput(KVWriter):
-    def __init__(self, rank):
+    def __init__(self):
         from loguru import logger
 
         self.logger = logger
