@@ -42,7 +42,7 @@ RUN cd $HOME && curl https://pyenv.run | bash && \
     echo "export PATH=\"${PYENV_ROOT}/bin:\$PATH\"" >> .bashrc && \
     echo "eval \"\$(pyenv init -)\"" >> .bashrc && \
     echo "eval \"\$(pyenv virtualenv-init -)\"" >> .bashrc && \
-    pyenv install 3.7.4 && pyenv global 3.7.4
+    pyenv install 3.8.0 && pyenv global 3.8.0
 
 # Install Poetry
 RUN eval "$(pyenv init -)" && pip install --upgrade pip poetry && poetry config settings.virtualenvs.create false
