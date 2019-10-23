@@ -22,9 +22,6 @@ class SingletonExpConfig:
         self.ENV_CONFIG = Config
         self.DEVICE = "gpu"
 
-        self.LOG_ALL_MPI = True
-        self.SYNC_FROM_ROOT = True
-
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
         self.NUM_WORKERS = 1

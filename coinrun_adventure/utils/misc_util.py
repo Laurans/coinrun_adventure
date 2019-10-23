@@ -2,7 +2,6 @@ from pathlib import Path
 import tensorflow as tf
 import datetime
 from typing import Union
-from coinrun_adventure.utils.mpi_util import mpi_average_train_test
 import numpy as np
 
 
@@ -35,11 +34,8 @@ def restore_model(model, save_path):
     return model
 
 
-def process_ep_buf(epinfobuf, sync_from_root):
+def process_ep_buf(epinfobuf):
     rewards = [epinfo["r"] for epinfo in epinfobuf]
     rew_mean = np.nanmean(rewards)
-
-    if sync_from_root:
-        rew_mean = mpi_average_train_test([rew_mean])[0]
 
     return rew_mean

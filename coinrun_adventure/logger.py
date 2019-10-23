@@ -16,13 +16,11 @@ class LoguruOutput(KVWriter):
     def __init__(self, rank):
         from loguru import logger
 
-        self.rank = rank
         self.logger = logger
 
     def writekvs(self, kvs):
-        if self.rank == 0:
-            for k, v in sorted(kvs.items()):
-                self.logger.info(f"{k}: {v}")
+        for k, v in sorted(kvs.items()):
+            self.logger.info(f"{k}: {v}")
 
 
 class TensorBoardOutput(KVWriter):
@@ -56,15 +54,11 @@ def get_metric_logger(**kwargs):
 class Logger:
     _instance = None
 
-    def __init__(self, folder, output_formats=None, rank=0):
+    def __init__(self, folder, output_formats=None):
         self.name2val = defaultdict(float)
         self.folder = folder
-        self.rank = rank
         if output_formats is None:
-            self.output_formats = [
-                LoguruOutput(self.rank),
-                TensorBoardOutput(self.folder),
-            ]
+            self.output_formats = [LoguruOutput(), TensorBoardOutput(self.folder)]
         else:
             self.output_formats = output_formats
 

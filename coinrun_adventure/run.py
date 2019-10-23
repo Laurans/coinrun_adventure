@@ -7,17 +7,10 @@ import names
 
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo import get_model, learn
-from coinrun_adventure.utils import (
-    common_arg_parser,
-    mkdir,
-    restore_model,
-    setup_mpi_gpus,
-    setup,
-)
+from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, setup
 from coinrun_adventure.common import add_final_wrappers
 from mpi4py import MPI
 from baselines.common import set_global_seeds
-import tensorflow as tf
 from coinrun import make
 
 
@@ -31,7 +24,6 @@ def main(args_list: list):
 
         seed = int(time.time()) % 10000
         set_global_seeds(seed * 100 + rank)
-        setup_mpi_gpus()
         setup()
 
         env = make("standard", num_envs=ExpConfig.NUM_ENVS)
@@ -40,7 +32,6 @@ def main(args_list: list):
         dirname = time.strftime("%Y%m%d_%H%M") + "_" + names.get_first_name()
         destination = ExpConfig.SAVE_DIR / dirname
         mkdir(destination)
-        setup_mpi_gpus()
         learn(destination, env)
 
     if args.test:

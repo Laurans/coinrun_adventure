@@ -1,4 +1,4 @@
-from coinrun_adventure.utils import setup_util, misc_util
+from coinrun_adventure.utils import misc_util
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo.model import Model
 from coinrun_adventure.ppo.agent import PPORunner
@@ -10,7 +10,6 @@ from pathlib import Path
 from coinrun.common.vec_env import VecEnv
 from loguru import logger as logo
 from collections import deque
-from mpi4py import MPI
 
 
 def safemean(xs):
@@ -61,7 +60,6 @@ def get_model():
         ent_coef=ExpConfig.ENTROPY_WEIGHT,
         vf_coef=ExpConfig.VALUE_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
-        mode_sync_from_root=ExpConfig.SYNC_FROM_ROOT,
     )
 
     return model
@@ -69,10 +67,7 @@ def get_model():
 
 def learn(exp_folder_path: Path, env: VecEnv):
 
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    metric_logger: Logger = get_metric_logger(folder=exp_folder_path, rank=rank)
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
 
     model: Model = get_model()
 
@@ -89,16 +84,11 @@ def learn(exp_folder_path: Path, env: VecEnv):
     active_ep_buf = epinfobuf100
     mean_rewards = []
     datapoints = []
-    can_save = True
-
-    if ExpConfig.SYNC_FROM_ROOT and rank != 0:
-        can_save = False
 
     tfirststart = time.perf_counter()
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
-    logo.info(f"Start experiment, rank {rank}, can save {can_save}")
     for update in range(1, nupdates + 1):
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
@@ -117,9 +107,7 @@ def learn(exp_folder_path: Path, env: VecEnv):
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
             step = update * ExpConfig.NBATCH
-            rew_mean_10 = misc_util.process_ep_buf(
-                active_ep_buf, ExpConfig.SYNC_FROM_ROOT
-            )
+            rew_mean_10 = misc_util.process_ep_buf(active_ep_buf)
             ep_len_mean = np.nanmean([epinfo["l"] for epinfo in active_ep_buf])
             # TODO: Logging
 
@@ -143,9 +131,8 @@ def learn(exp_folder_path: Path, env: VecEnv):
 
             metric_logger.dumpkvs()
 
-        if can_save:
-            if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
-                misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
+        if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
+            misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
 
     misc_util.save_model(model, exp_folder_path / "last_model")
     env.close()
