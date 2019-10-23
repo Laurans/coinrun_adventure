@@ -131,7 +131,7 @@ def learn(exp_folder_path: Path, env: VecEnv):
             metric_logger.logkv("misc/total_timesteps", update * ExpConfig.NBATCH)
             metric_logger.logkv("fps", fps)
             metric_logger.logkv("misc/time_elapsed", tnow - tfirststart)
-            metric_logger.logkv("episode/lenght_mean", ep_len_mean)
+            metric_logger.logkv("episode/length_mean", ep_len_mean)
             metric_logger.logkv("episode/rew_mean_10", rew_mean_10)
 
             for (lossval, lossname) in zip(lossvals, model.loss_names):
@@ -141,7 +141,7 @@ def learn(exp_folder_path: Path, env: VecEnv):
 
         if can_save:
             if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
-                misc_util.save_model(model, exp_folder_path / "auto_save")
+                misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
 
     misc_util.save_model(model, exp_folder_path / "last_model")
     env.close()
