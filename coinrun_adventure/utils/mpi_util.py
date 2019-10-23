@@ -79,4 +79,4 @@ def mpi_average_comm(values, comm):
 
 
 def mpi_average_train_test(values):
-    return mpi_average_comm(values, 0)
+    return mpi_average_comm(values, MPI.COMM_WORLD.Split(0, 0))
