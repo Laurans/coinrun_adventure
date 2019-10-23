@@ -21,7 +21,10 @@ class SingletonExpConfig:
     def init(self):
         self.ENV_CONFIG = Config
         self.DEVICE = "gpu"
-        self.TB_DIR = "/tmp/tensorflow"
+
+        self.LOG_ALL_MPI = True
+        self.SYNC_FROM_ROOT = True
+
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
         self.NUM_WORKERS = 1
@@ -48,7 +51,7 @@ class SingletonExpConfig:
         self.NUM_OPT_EPOCHS = 3  # number of training epochs per update
         self.NUM_STEPS = 256  # NOTE: rollout length
         self.CLIP_RANGE = 0.2  # clipping range, constant
-        self.CLIP_RANGE_FN = lambda f: f* self.CLIP_RANGE
+        self.CLIP_RANGE_FN = lambda f: f * self.CLIP_RANGE
 
         self.LOG_INTERVAL = 1  # Number of timesteps betwen logging events
 
