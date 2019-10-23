@@ -33,6 +33,7 @@ class PPORunner:
             [],
             [],
         )
+        epinfos = []
 
         # For n in range number of steps
         for _ in range(self.num_steps):
@@ -50,6 +51,10 @@ class PPORunner:
 
             # Take actions in env and look the results
             self.obs[:], rewards, self.dones, infos = self.env.step(actions)
+            for info in infos:
+                maybeepinfo = info.get("episode")
+                if maybeepinfo:
+                    epinfos.append(maybeepinfo)
             mb_rewards.append(rewards)
 
         # batch of steps to batch of rollouts
@@ -81,8 +86,12 @@ class PPORunner:
             )
 
         mb_returns = mb_advs + mb_values
-        return map(
-            sf01, (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs)
+        return (
+            *map(
+                sf01,
+                (mb_obs, mb_returns, mb_dones, mb_actions, mb_values, mb_neglogpacs),
+            ),
+            epinfos,
         )
 
 
