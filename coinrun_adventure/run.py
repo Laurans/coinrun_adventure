@@ -12,7 +12,7 @@ from coinrun_adventure.common import add_final_wrappers
 from coinrun import make
 
 import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 
 def main(args_list: list):

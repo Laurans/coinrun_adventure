@@ -36,8 +36,6 @@ class Model(tf.Module):
         """
         Make the training part (feedforward and retropropagation of gradients)
         """
-        self.network.pi.trainable = True
-        self.network.value.trainable = True
         grads, pg_loss, vf_loss, entropy, approxkl, clipfrac = self.get_grad(
             cliprange, obs, returns, masks, actions, values, neglogpac_old
         )
@@ -49,7 +47,6 @@ class Model(tf.Module):
 
         return pg_loss, vf_loss, entropy, approxkl, clipfrac
 
-    @tf.function
     def get_grad(self, cliprange, obs, returns, masks, actions, values, neglogpac_old):
         # we calcurate advantage A(s, a) = R + yV(s') - V(s)
         # Returns = R + yV(s')
