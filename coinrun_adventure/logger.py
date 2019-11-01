@@ -54,9 +54,10 @@ def get_metric_logger(**kwargs):
 class Logger:
     _instance = None
 
-    def __init__(self, folder, output_formats=None):
+    def __init__(self, folder, output_formats=None, rank=0):
         self.name2val = defaultdict(float)
         self.folder = folder
+        self.rank = rank
         if output_formats is None:
             self.output_formats = [LoguruOutput(), TensorBoardOutput(self.folder)]
         else:
@@ -69,7 +70,8 @@ class Logger:
 
         for fmt in self.output_formats:
             if isinstance(fmt, KVWriter):
-                fmt.writekvs(self.name2val)
+                if self.rank == 0:
+                    fmt.writekvs(self.name2val)
 
         self.name2val.clear()
 

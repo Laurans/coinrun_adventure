@@ -11,6 +11,8 @@ from loguru import logger as logo
 from collections import deque
 import datetime
 
+from mpi4py import MPI
+
 
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
@@ -61,6 +63,7 @@ def get_model():
         vf_coef=ExpConfig.VALUE_WEIGHT,
         l2_coef=ExpConfig.L2_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
+        sync_from_root_value=ExpConfig.SYNC_FROM_ROOT,
     )
 
     return model
@@ -68,7 +71,10 @@ def get_model():
 
 def learn(exp_folder_path: Path, env):
 
-    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path, rank=rank)
 
     model: Model = get_model()
 
@@ -86,6 +92,11 @@ def learn(exp_folder_path: Path, env):
     tfirststart = time.perf_counter()
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
+
+    can_save = True
+
+    if ExpConfig.SYNC_FROM_ROOT and rank != 0:
+        can_save = False
 
     for update in range(1, nupdates + 1):
         logo.info(f"{update}/{nupdates+1}")
@@ -105,29 +116,29 @@ def learn(exp_folder_path: Path, env):
         fps = int(ExpConfig.NBATCH / (tnow - tstart))
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
-            step = update * ExpConfig.NBATCH
-            rew_mean_100 = misc_util.process_ep_buf(epinfobuf100)
-            rew_mean_10 = misc_util.process_ep_buf(epinfobuf10)
+            rew_mean_100 = misc_util.process_ep_buf(
+                epinfobuf100, ExpConfig.SYNC_FROM_ROOT
+            )
+            rew_mean_10 = misc_util.process_ep_buf(
+                epinfobuf10, ExpConfig.SYNC_FROM_ROOT
+            )
             ep_len_mean = np.nanmean([epinfo["l"] for epinfo in epinfobuf100])
-            # TODO: Logging
 
             time_elapsed = tnow - tfirststart
-            completion_perc = (update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS)
-            time_remaining = datetime.timedelta(seconds=(time_elapsed / completion_perc - time_elapsed))
-
+            completion_perc = update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS
+            time_remaining = datetime.timedelta(
+                seconds=(time_elapsed / completion_perc - time_elapsed)
+            )
 
             metric_logger.logkv("misc/serial_timesteps", update * ExpConfig.NUM_STEPS)
             metric_logger.logkv("misc/nupdates", update)
             metric_logger.logkv("misc/total_timesteps", update * ExpConfig.NBATCH)
             metric_logger.logkv("fps", fps)
-            metric_logger.logkv("misc/time_elapsed", time_elapsed )
+            metric_logger.logkv("misc/time_elapsed", time_elapsed)
             metric_logger.logkv("episode/length_mean_100", ep_len_mean)
             metric_logger.logkv("episode/rew_mean_100", rew_mean_100)
             metric_logger.logkv("episode/rew_mean_10", rew_mean_10)
-            metric_logger.logkv(
-                "misc/completion_training",
-                completion_perc,
-            )
+            metric_logger.logkv("misc/completion_training", completion_perc)
             logo.info(f"Time remaining {time_remaining}")
 
             for (lossval, lossname) in zip(lossvals, model.loss_names):
@@ -135,8 +146,9 @@ def learn(exp_folder_path: Path, env):
 
             metric_logger.dumpkvs()
 
-        if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
-            misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
+        if can_save:
+            if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
+                misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
 
     misc_util.save_model(model, exp_folder_path / "last_model")
     env.close()

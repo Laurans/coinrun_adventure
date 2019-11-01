@@ -1,5 +1,8 @@
 import tensorflow as tf
 from .policies import Policy
+from mpi4py import MPI
+from baselines.common.mpi_adam_optimizer import MpiAdamOptimizer
+from baselines.common.mpi_util import sync_from_root
 
 
 class Model(tf.Module):
@@ -12,10 +15,17 @@ class Model(tf.Module):
         vf_coef,
         l2_coef,
         max_grad_norm,
+        sync_from_root_value,
     ):
         super().__init__(name="PPO2Model")
         self.network = Policy(policy_network_archi, ob_shape, ac_space)
-        self.optimizer = tf.keras.optimizers.Adam()
+        if sync_from_root_value:
+            self.optimizer = MpiAdamOptimizer(
+                MPI.COMM_WORLD, self.network.trainable_variables
+            )
+        else:
+            self.optimizer = tf.keras.optimizers.Adam()
+        self.optimizer.epsilon = 1e-5
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.l2_coef = l2_coef
@@ -31,6 +41,10 @@ class Model(tf.Module):
             "approxkl",
             "clipfrac",
         ]
+        if sync_from_root_value:
+            sync_from_root(self.variables)
+
+        self.sync_from_root_value = sync_from_root_value
 
     def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpac_old):
         """
@@ -40,10 +54,12 @@ class Model(tf.Module):
             cliprange, obs, returns, masks, actions, values, neglogpac_old
         )
 
-        self.optimizer.learning_rate = lr
-        self.optimizer.epsilon = 1e-5
-        grads_and_vars = zip(grads, self.network.trainable_variables)
-        self.optimizer.apply_gradients(grads_and_vars)
+        if self.sync_from_root_value:
+            self.optimizer.apply_gradients(grads, lr)
+        else:
+            self.optimizer.learning_rate = lr
+            grads_and_vars = zip(grads, self.network.trainable_variables)
+            self.optimizer.apply_gradients(grads_and_vars)
 
         return pg_loss, vf_loss, entropy, approxkl, clipfrac
 
@@ -95,5 +111,8 @@ class Model(tf.Module):
 
         if self.max_grad_norm is not None:
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
+
+        if self.sync_from_root_value:
+            grads = tf.concat([tf.reshape(g, (-1,)) for g in grads], axis=0)
 
         return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
