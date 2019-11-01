@@ -99,7 +99,7 @@ def learn(exp_folder_path: Path, env):
         can_save = False
 
     for update in range(1, nupdates + 1):
-        logo.info(f"{update}/{nupdates+1}")
+        logo.info(f"{rank}: {update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
         tstart = time.perf_counter()
