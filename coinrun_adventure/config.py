@@ -29,7 +29,7 @@ class SingletonExpConfig:
         self.SYNC_FROM_ROOT = True
 
         self.TOTAL_TIMESTEPS = (
-            1e8
+            256e6
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (
