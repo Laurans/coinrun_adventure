@@ -46,6 +46,9 @@ class Model(tf.Module):
 
         self.sync_from_root_value = sync_from_root_value
 
+        self.var_list = self.network.trainable_variables
+        self.weight_params = [v for v in self.var_list if "/b" not in v.name]
+
     def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpac_old):
         """
         Make the training part (feedforward and retropropagation of gradients)
@@ -71,9 +74,6 @@ class Model(tf.Module):
         # Normalize the advantages
         advs = (advs - tf.reduce_mean(advs)) / (tf.keras.backend.std(advs) + 1e-8)
 
-        var_list = self.network.trainable_variables
-        weight_params = [v for v in var_list if "/b" not in v.name]
-
         with tf.GradientTape() as tape:
             out_pi = self.network.pi(obs)
             distribution = self.network.distribution(out_pi)
@@ -97,17 +97,16 @@ class Model(tf.Module):
                 tf.cast(tf.greater(tf.abs(ratio - 1.0), cliprange), tf.float32)
             )
 
-            l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
+            # l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
 
             loss = (
                 pg_loss
                 - entropy * self.ent_coef
                 + vf_loss * self.vf_coef
-                + l2_loss
-                + self.l2_coef
+                # + l2_loss * self.l2_coef
             )
 
-        grads = tape.gradient(loss, var_list)
+        grads = tape.gradient(loss, self.var_list)
 
         if self.max_grad_norm is not None:
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
