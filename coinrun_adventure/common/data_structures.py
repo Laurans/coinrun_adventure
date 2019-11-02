@@ -17,6 +17,6 @@ class Step(JSONSerializerMixin):
 class Metadata(JSONSerializerMixin):
     game_name: str = None
     action_names: list = None
-    sequence_folder_name: str = None
-    images_folder_name: str = None
-    images_explain_name: str = None
+    sequence_folder: str = None
+    images_folder: str = None
+    explain_folder: str = None

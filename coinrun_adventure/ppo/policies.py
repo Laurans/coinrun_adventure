@@ -46,9 +46,10 @@ class Policy(tf.Module):
     def raw_value(self, observation):
         out_pi = self.pi(observation)
         distribution = self.distribution(out_pi)
+        proba = distribution.mean
         action = distribution.sample()
         vf = self.value(observation)
-        return action, vf, out_pi
+        return action, vf, proba
 
     @tf.function
     def step(self, observation):
