@@ -141,7 +141,7 @@ def learn(exp_folder_path: Path, env):
 
             metric_logger.dumpkvs()
 
-        if ExpConfig.SYNC_FROM_ROOT and rank != 0:
+        if ExpConfig.SYNC_FROM_ROOT and rank == 0:
             if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
                 misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
 

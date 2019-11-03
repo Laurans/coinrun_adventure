@@ -114,6 +114,6 @@ class Model(tf.Module):
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
 
         if self.sync_from_root_value:
-            grads = tf.concat([tf.reshape(g, (-1)) for g in grads], axis=0)
+            grads = tf.concat([tf.reshape(g, (-1,)) for g in grads], axis=0)
 
         return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
