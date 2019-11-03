@@ -27,7 +27,7 @@ class SingletonExpConfig:
         self.NUM_ENVS = 32
 
         self.TOTAL_TIMESTEPS = (
-            256e6
+            2048e6
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (
@@ -75,7 +75,7 @@ class SingletonExpConfig:
         self.FRAME_STACK = 1
 
         # Overwrite the latest save file after this many updates
-        self.SAVE_INTERVAL = 10
+        self.SAVE_INTERVAL = 50
 
         # The number of evaluation environments to use
         self.NUM_EVAL = 20
