@@ -11,12 +11,8 @@ from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, set
 from coinrun_adventure.common import add_final_wrappers
 from coinrun_adventure.test_agent import play
 
-from baselines.common import set_global_seeds
-from baselines.common.mpi_util import setup_mpi_gpus
-
 from coinrun import make
 
-from mpi4py import MPI
 
 import os
 
@@ -24,13 +20,6 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 def train(args):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    seed = int(time.time()) % 10000
-    set_global_seeds(seed * 100 + rank)
-    setup_mpi_gpus()
-
     setup()
 
     env = make("standard", num_envs=ExpConfig.NUM_ENVS)
@@ -63,7 +52,6 @@ def main(args_list: list):
             use_data_augmentation=0,
             high_difficulty=0,
             num_envs=1,
-            sync_from_root=False,
             set_seed=65,
         )
         model = get_model()

@@ -3,7 +3,6 @@ import tensorflow as tf
 import datetime
 from typing import Union
 import numpy as np
-from mpi4py import MPI
 
 
 def get_time_str():
@@ -35,26 +34,8 @@ def restore_model(model, save_path):
     return model
 
 
-def mpi_average(values):
-    return mpi_average_comm(values, MPI.COMM_WORLD)
-
-
-def mpi_average_comm(values, comm):
-    size = comm.size
-
-    x = np.array(values)
-    buf = np.zeros_like(x)
-    comm.Allreduce(x, buf, op=MPI.SUM)
-    buf = buf / size
-
-    return buf
-
-
-def process_ep_buf(epinfobuf, sync_from_root_value=False):
+def process_ep_buf(epinfobuf):
     rewards = [epinfo["r"] for epinfo in epinfobuf]
     rew_mean = np.nanmean(rewards)
-
-    if sync_from_root_value:
-        rew_mean = mpi_average([rew_mean])[0]
 
     return rew_mean

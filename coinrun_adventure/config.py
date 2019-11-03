@@ -1,6 +1,5 @@
 from coinrun.config import Config
 from pathlib import Path
-from mpi4py import MPI
 
 
 def constfn(val):
@@ -26,7 +25,6 @@ class SingletonExpConfig:
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
         self.NUM_ENVS = 32
-        self.SYNC_FROM_ROOT = True
 
         self.TOTAL_TIMESTEPS = (
             256e6
