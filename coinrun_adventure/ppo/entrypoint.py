@@ -11,8 +11,6 @@ from loguru import logger as logo
 from collections import deque
 import datetime
 
-from mpi4py import MPI
-
 
 def safemean(xs):
     return np.nan if len(xs) == 0 else np.mean(xs)
@@ -63,18 +61,13 @@ def get_model():
         vf_coef=ExpConfig.VALUE_WEIGHT,
         l2_coef=ExpConfig.L2_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
-        sync_from_root_value=ExpConfig.SYNC_FROM_ROOT,
     )
 
     return model
 
 
 def learn(exp_folder_path: Path, env):
-
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    metric_logger: Logger = get_metric_logger(folder=exp_folder_path, rank=rank)
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
 
     model: Model = get_model()
 
@@ -94,8 +87,7 @@ def learn(exp_folder_path: Path, env):
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
     for update in range(1, nupdates + 1):
-        if rank == 0:
-            logo.info(f"{update}/{nupdates+1}")
+        logo.info(f"{update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
         tstart = time.perf_counter()
@@ -112,12 +104,8 @@ def learn(exp_folder_path: Path, env):
         fps = int(ExpConfig.NBATCH / (tnow - tstart))
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
-            rew_mean_100 = misc_util.process_ep_buf(
-                epinfobuf100, ExpConfig.SYNC_FROM_ROOT
-            )
-            rew_mean_10 = misc_util.process_ep_buf(
-                epinfobuf10, ExpConfig.SYNC_FROM_ROOT
-            )
+            rew_mean_100 = misc_util.process_ep_buf(epinfobuf100)
+            rew_mean_10 = misc_util.process_ep_buf(epinfobuf10)
             ep_len_mean = np.nanmean([epinfo["l"] for epinfo in epinfobuf100])
 
             time_elapsed = tnow - tfirststart
@@ -142,9 +130,8 @@ def learn(exp_folder_path: Path, env):
 
             metric_logger.dumpkvs()
 
-        if ExpConfig.SYNC_FROM_ROOT and rank == 0:
-            if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
-                misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
+        if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
+            misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
 
     misc_util.save_model(model, exp_folder_path / "last_model")
     env.close()

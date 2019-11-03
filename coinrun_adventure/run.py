@@ -13,22 +13,12 @@ from coinrun_adventure.test_agent import play
 
 from coinrun import make
 
-from baselines.common import set_global_seeds
-from baselines.common.mpi_util import setup_mpi_gpus
-from mpi4py import MPI
-
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 def train(args):
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-
-    seed = int(time.time()) % 10000
-    set_global_seeds(seed * 100 + rank)
-    setup_mpi_gpus()
 
     setup()
 
