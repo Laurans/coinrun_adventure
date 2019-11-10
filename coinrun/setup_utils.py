@@ -5,4 +5,4 @@ def setup(**kwargs):
     Config.merge(kwargs)
     from coinrun.coinrunenv import init_args_and_threads
 
-    init_args_and_threads(4)
+    init_args_and_threads()
