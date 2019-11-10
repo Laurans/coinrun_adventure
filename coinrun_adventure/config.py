@@ -53,14 +53,14 @@ class SingletonExpConfig:
 
         # The convolutional architecture to use
         # One of {'nature', 'impala', 'impalalarge'}
-        self.ARCHITECTURE = "nature"
+        self.ARCHITECTURE = "impala"
 
         # Should the model include an LSTM
         self.USE_LSTM = False
 
         # Should batch normalization be used after each convolutional layer
         # NOTE: Only applies to IMPALA and IMPALA-Large architectures
-        self.USE_BATCH_NORM = False
+        self.USE_BATCH_NORM = True
 
         # What dropout probability to use after each convolutional layer
         # NOTE: Only applies to IMPALA and IMPALA-Large architectures

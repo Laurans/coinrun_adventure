@@ -64,7 +64,7 @@ class SingletonConfig:
         self.OB_SHAPE = (64, 64, 3)
         self.AC_SPACE = spaces.Discrete(7)
 
-        self.RAND_SEED = None
+        self.RAND_SEED = 1
 
         self.compute_args_dependencies()
 
