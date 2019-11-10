@@ -91,7 +91,7 @@ lib.vec_wait.argtypes = [
 already_inited = False
 
 
-def init_args_and_threads(cpu_count=4, monitor_csv_policy="all", rand_seed=None):
+def init_args_and_threads(cpu_count=4, monitor_csv_policy="all"):
     """
     Perform one-time global init for the CoinRun library.  This must be called
     before creating an instance of CoinRunVecEnv.  You should not
@@ -99,13 +99,6 @@ def init_args_and_threads(cpu_count=4, monitor_csv_policy="all", rand_seed=None)
     """
     os.environ["COINRUN_RESOURCES_PATH"] = os.path.join(SCRIPT_DIR, "assets")
     is_high_difficulty = Config.HIGH_DIFFICULTY
-
-    if rand_seed is None:
-        rand_seed = random.SystemRandom().randint(0, 1000000000)
-
-        # ensure different MPI processes get different seeds (just in case SystemRandom implementation is poor)
-        mpi_rank, mpi_size = mpi_util.get_local_rank_size(MPI.COMM_WORLD)
-        rand_seed = rand_seed - rand_seed % mpi_size + mpi_rank
 
     int_args = np.array(
         [
@@ -115,7 +108,7 @@ def init_args_and_threads(cpu_count=4, monitor_csv_policy="all", rand_seed=None)
             Config.USE_DATA_AUGMENTATION,
             game_versions[Config.GAME_TYPE],
             Config.SET_SEED,
-            rand_seed,
+            Config.RAND_SEED
         ]
     ).astype(np.int32)
 
@@ -208,7 +201,7 @@ class CoinRunVecEnv(VecEnv):
         self.handle = 0
 
     def reset(self):
-        print("CoinRun ignores resets")
+        #print("CoinRun ignores resets")
         obs, _, _, _ = self.step_wait()
         return obs
 
