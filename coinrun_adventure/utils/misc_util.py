@@ -30,7 +30,7 @@ def save_model(model, save_path):
 
 def restore_model(model, save_path):
     ckpt = tf.train.Checkpoint(model=model)
-    ckpt.restore(tf.train.latest_checkpoint(save_path))
+    ckpt.restore(tf.train.latest_checkpoint(save_path)).expect_partial()
     return model
 
 
@@ -39,4 +39,3 @@ def process_ep_buf(epinfobuf):
     rew_mean = np.nanmean(rewards)
 
     return rew_mean
-
