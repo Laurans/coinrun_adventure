@@ -81,7 +81,7 @@ class Model(tf.Module):
                 tf.cast(tf.greater(tf.abs(ratio - 1.0), cliprange), tf.float32)
             )
 
-            l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in weight_params])
+            l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in self.weight_params])
 
             loss = (
                 pg_loss

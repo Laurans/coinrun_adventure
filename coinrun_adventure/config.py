@@ -24,7 +24,7 @@ class SingletonExpConfig:
 
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
-        self.NUM_ENVS = 32 * 8
+        self.NUM_ENVS = 32 * 1
 
         self.TOTAL_TIMESTEPS = (
             256e6 * 8
