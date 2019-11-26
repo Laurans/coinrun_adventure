@@ -8,7 +8,7 @@ from coinrun.setup_utils import setup
 
 def main():
 
-    setup(paint_vel_info=0)
+    setup(paint_vel_info=0, use_data_augmentation=False)
     print(
         """Control with arrow keys,
 F1, F2 -- switch resolution,
