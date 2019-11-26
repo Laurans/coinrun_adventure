@@ -96,3 +96,7 @@ class Model(tf.Module):
             grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
 
         return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
+
+    def get_first_last_conv_layers(self):
+        layers = list(filter(lambda x: "conv" in x.name, self.network.pi.layers))
+        return layers[0].name, layers[-1].name

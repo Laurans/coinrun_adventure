@@ -15,37 +15,34 @@ from tf_explain.utils.image import apply_grey_patch
 import math
 
 
-def _experimental(model_keras, obs, actions):
+def grad_cam_heatmap(model_keras, image, class_index, layers_to_visit):
 
     model = model_keras.pi
-    grad_model = tf.keras.models.Model(
-        [model.inputs], [model.get_layer("conv2d").output, model.output]
-    )
+    heatmaps = []
+    for name in layers_to_visit:
+        grad_model = tf.keras.models.Model(
+            [model.inputs], [model.get_layer(name).output, model.output]
+        )
 
-    with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(obs)
-        loss = predictions[:, int(actions)]
+        with tf.GradientTape() as tape:
+            conv_outputs, predictions = grad_model(image)
+            loss = predictions[:, class_index]
 
-    grads = tape.gradient(loss, conv_outputs)
+        grads = tape.gradient(loss, conv_outputs)
 
-    guided_grad = (
-        tf.cast(conv_outputs > 0, "float32") * tf.cast(grads > 0, "float32") * grads
-    )
+        guided_grad = (
+            tf.cast(conv_outputs > 0, "float32") * tf.cast(grads > 0, "float32") * grads
+        )
 
-    cams = GradCAM.generate_ponderated_output(conv_outputs, guided_grad)
-    heatmaps = np.array(
-        [
-            heatmap_display(cam.numpy(), image, cv2.COLORMAP_VIRIDIS)
-            for cam, image in zip(cams, obs)
-        ]
-    )
-    return heatmaps[0]
+        cam = GradCAM.generate_ponderated_output(conv_outputs, guided_grad)[0].numpy()
+
+        heatmaps.append(heatmap_display(cam, image[0], cv2.COLORMAP_VIRIDIS))
+    return heatmaps
 
 
 def experimental(model_keras, image, actions):
     class_index = int(actions)
     patch_size = 5
-    image = image[0]
 
     sensitivity_map = np.zeros(
         (math.ceil(image.shape[0] / patch_size), math.ceil(image.shape[1] / patch_size))
@@ -73,6 +70,9 @@ def experimental(model_keras, image, actions):
 
 
 def play(destination, model):
+    model.network.pi.trainable = False
+    model.network.value_fc.trainable = False
+    tf.random.set_seed(98437)
     destination = Path(destination).resolve() / "play"
     sequence_folder = destination / "sequence"
     images_folder = destination / "image"
@@ -95,10 +95,10 @@ def play(destination, model):
         sequence_folder="sequence",
         images_folder="image",
         explain_folder="explain",
-    ).as_json()
+    )
 
     with open(str(destination / "metadata.json"), "w") as outfile:
-        json.dump(metadata, outfile)
+        json.dump(metadata.as_json(), outfile)
 
     env = make("standard", num_envs=1)
 
@@ -106,13 +106,16 @@ def play(destination, model):
     timestep = 0
     episode_rew = 0
     done = False
+    layers_to_visit = model.get_first_last_conv_layers()
     while not done:
         obs_hires = env.render(mode="rgb_array")
         actions, state_value, pi_raw = model.get_all_values(obs)
         actions = actions.numpy()
         state_value = state_value.numpy()
         pi_raw = pi_raw.numpy()
-        gram_cam_image = experimental(model.network, obs, actions)
+        gram_cam_images = grad_cam_heatmap(
+            model.network, obs, int(np.argmax(pi_raw)), layers_to_visit
+        )
 
         next_obs, rew, done, _ = env.step(actions)
         obs = next_obs
@@ -122,7 +125,7 @@ def play(destination, model):
 
         step = Step(
             timestep=timestep,
-            imagename=f"{timestep:05d}.jpg",
+            imagename=f"{timestep:05d}",
             reward=float(rew),
             done=int(done),
             actions=list(map(int, actions)),
@@ -131,13 +134,15 @@ def play(destination, model):
         )
 
         cv2.imwrite(
-            f"{str(images_folder/step.imagename)}",
+            f"{str(images_folder/step.imagename)}.jpg",
             cv2.cvtColor(obs_hires, cv2.COLOR_RGB2BGR),
         )
-        cv2.imwrite(
-            f"{str(images_explain_folder/step.imagename)}",
-            cv2.cvtColor(gram_cam_image, cv2.COLOR_RGB2BGR),
-        )
+
+        for layers_position, gram_cam_image in zip(["first", "last"], gram_cam_images):
+            filepath = str(
+                images_explain_folder / f"{step.imagename}_{layers_position}.jpg"
+            )
+            cv2.imwrite(filepath, cv2.cvtColor(gram_cam_image, cv2.COLOR_RGB2BGR))
 
         with open(str(sequence_folder / f"{timestep:05d}.json"), "w") as outfile:
             json.dump(step.as_json(), outfile)

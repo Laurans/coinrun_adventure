@@ -54,7 +54,7 @@ def main(args_list: list):
             high_difficulty=True,
             num_envs=1,
             rand_seed=17227,
-            sync_from_root=False,
+            architecture="impala",
         )
         model = get_model()
         restore_model(model, experiment_folder)
