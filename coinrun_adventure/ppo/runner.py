@@ -83,4 +83,3 @@ class Runner:
             storage[key] = torch.cat(storage[key], dim=0)
 
         return storage, epinfos
-

@@ -58,4 +58,3 @@ class CategoricalActorCriticPolicy(nn.Module, BaseNet):
             "entropy": entropy,
             "state_value": value,
         }
-
