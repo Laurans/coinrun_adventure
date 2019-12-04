@@ -92,14 +92,14 @@ class Logger:
         self.name2val[key] = val
 
     def dumpkvs(self):
-
-        for fmt in self.output_formats:
-            if isinstance(fmt, KVWriter):
-                if self.rank == 0:
-                    fmt.writekvs(self.name2val)
+        if self.rank == 0:
+            for fmt in self.output_formats:
+                if isinstance(fmt, KVWriter):
+                        fmt.writekvs(self.name2val)
 
         self.name2val.clear()
 
     def close(self):
-        for fmt in self.output_formats:
-            fmt.close()
+        if self.rank == 0:
+            for fmt in self.output_formats:
+                fmt.close()
