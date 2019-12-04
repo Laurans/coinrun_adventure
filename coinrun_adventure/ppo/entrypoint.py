@@ -93,7 +93,7 @@ def learn(rank: int, exp_folder_path: Path, env):
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
-    for update in range(1, 3):  # nupdates + 1):
+    for update in range(1, nupdates + 1):
         if rank == 0:
             logo.info(f"{update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
