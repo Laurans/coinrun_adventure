@@ -1,6 +1,7 @@
 from coinrun_adventure.network.bodies import body_factory
 from coinrun_adventure.network.heads import CategoricalActorCriticPolicy
 import torch
+from coinrun_adventure.utils.torch_utils import sync_gradients
 
 
 class Model:
@@ -92,8 +93,8 @@ class Model:
 
         self.optimizer.zero_grad()
         loss.backward()
+        sync_gradients(self.network)
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.max_grad_norm)
         self.optimizer.step()
 
         return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
-

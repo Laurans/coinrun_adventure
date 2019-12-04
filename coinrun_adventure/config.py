@@ -19,15 +19,17 @@ class SingletonExpConfig:
         return SingletonExpConfig.__instance
 
     def init(self):
+        self.WORLD_SIZE = 2
+
         self.ENV_CONFIG = Config
         self.DEVICE = "cuda"
 
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
-        self.NUM_ENVS = 32 * 4
+        self.NUM_ENVS = 32 * (8 // self.WORLD_SIZE)
 
-        self.TOTAL_TIMESTEPS = (
-            256e6 * 8
+        self.TOTAL_TIMESTEPS = 256e6 * (
+            8 // self.WORLD_SIZE
         )  # Number of timesteps i.e. number of actions taken in the environment
 
         self.ENTROPY_WEIGHT = (

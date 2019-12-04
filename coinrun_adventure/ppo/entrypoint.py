@@ -1,4 +1,4 @@
-from coinrun_adventure.utils.torch_utils import save_model
+from coinrun_adventure.utils.torch_utils import save_model, sync_initial_weights
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo.model import Model
 from coinrun_adventure.ppo.runner import Runner
@@ -47,7 +47,7 @@ def run_update(update: int, nupdates: int, runner: Runner, model: Model):
     return lossvals, epinfos
 
 
-def get_model():
+def get_model(device):
     model = Model(
         ob_shape=ExpConfig.OB_SHAPE,
         ac_space=ExpConfig.AC_SPACE.n,
@@ -56,16 +56,18 @@ def get_model():
         vf_coef=ExpConfig.VALUE_WEIGHT,
         l2_coef=ExpConfig.L2_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
-        device=ExpConfig.DEVICE,
+        device=device,
     )
 
     return model
 
 
-def learn(exp_folder_path: Path, env):
-    metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
-    # To do metric
-    model: Model = get_model()
+def learn(rank: int, exp_folder_path: Path, env):
+    metric_logger: Logger = get_metric_logger(folder=exp_folder_path, rank=rank)
+    device = f"{ExpConfig.DEVICE}:{rank}"
+    model: Model = get_model(device)
+
+    sync_initial_weights(model.network, rank, ExpConfig.WORLD_SIZE)
 
     runner = Runner(
         env=env,
@@ -73,7 +75,7 @@ def learn(exp_folder_path: Path, env):
         num_steps=ExpConfig.NUM_STEPS,
         gamma_coef=ExpConfig.GAMMA,
         lambda_coef=ExpConfig.LAMBDA,
-        device=ExpConfig.DEVICE,
+        device=device,
     )
 
     epinfobuf10 = deque(maxlen=10)
@@ -83,7 +85,7 @@ def learn(exp_folder_path: Path, env):
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
-    for update in range(1, 2):  # nupdates + 1):
+    for update in range(1, nupdates + 1):
         logo.info(f"{update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
@@ -126,9 +128,10 @@ def learn(exp_folder_path: Path, env):
 
             metric_logger.dumpkvs()
 
-        if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
+        if rank == 0 and (update % ExpConfig.SAVE_INTERVAL == 0 or update == 1):
             save_model(model, update, exp_folder_path / f"auto_save_{update}")
 
-    save_model(model, update, exp_folder_path / "last_model")
+    if rank == 0:
+        save_model(model, update, exp_folder_path / "last_model")
     env.close()
-
+    print(f"rank: {rank}\n {list(model.network.parameters())[-2].data[0, :10]}")

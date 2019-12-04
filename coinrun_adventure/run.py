@@ -1,35 +1,57 @@
+import os
+import random
 import sys
 import time
 from argparse import ArgumentParser
 from pathlib import Path
 
 import names
-
-from coinrun_adventure.config import ExpConfig
-from coinrun_adventure.ppo.entrypoint import get_model, learn
-from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, setup
-from coinrun_adventure.common import add_final_wrappers
-from coinrun_adventure.play_with_agent import play
-from coinrun_adventure.test_with_agent import test
-
+import torch.distributed as dist
+import torch.multiprocessing as mp
 from coinrun import make
+from coinrun_adventure.common import add_final_wrappers
+from coinrun_adventure.config import ExpConfig
+from coinrun_adventure.play_with_agent import play
+from coinrun_adventure.ppo.entrypoint import get_model, learn
+from coinrun_adventure.test_with_agent import test
+from coinrun_adventure.utils import (
+    cleanup,
+    common_arg_parser,
+    mkdir,
+    restore_model,
+    setup,
+)
 
-import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+def multi_setup(rank, world_size, destination):
+
+    dist.init_process_group(backend="gloo", rank=rank, world_size=world_size)
+
+    setup()
+    env = make("standard", num_envs=ExpConfig.NUM_ENVS)
+    env = add_final_wrappers(env)
+
+    learn(rank, destination, env)
+
+    cleanup()
 
 
 def train(args):
 
-    setup()
-
-    env = make("standard", num_envs=ExpConfig.NUM_ENVS)
-    env = add_final_wrappers(env)
     dirname = time.strftime("%Y%m%d_%H%M") + "_" + names.get_first_name()
     destination = ExpConfig.SAVE_DIR / dirname
     mkdir(destination)
 
-    learn(destination, env)
+    rand_port = random.SystemRandom().randint(1000, 2000)
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(rand_port)
+
+    mp.spawn(
+        multi_setup,
+        args=(ExpConfig.WORLD_SIZE, destination),
+        nprocs=ExpConfig.WORLD_SIZE,
+        join=True,
+    )
 
 
 def main(args_list: list):

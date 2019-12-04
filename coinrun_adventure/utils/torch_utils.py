@@ -1,4 +1,5 @@
 import torch
+import torch.distributed as dist
 import numpy as np
 import os
 
@@ -47,18 +48,23 @@ def restore_model(model, save_path):
     return update
 
 
-def parallel_setup(rank, world_size):
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12355"
+def sync_initial_weights(model, rank, world_size):
+    for param in model.parameters():
+        if rank == 0:
+            for sibling in range(1, world_size):
+                print(f"sibling {sibling}")
+                dist.send(param.data, dst=sibling)
 
-    # Initialize the process group
-    torch.distributed.init_process_group("gloo", rank=rank, world_size=world_size)
-
-    # Explicitly setting seed to make sure that models created in two processes
-    # start from same random weights and biases
-    torch.manual_seed(42)
+        else:
+            dist.recv(param.data, src=0)
 
 
-def parallel_cleanup():
-    torch.distributed.destroy_process_group()
+def sync_gradients(model):
+    world_size = float(dist.get_world_size())
+    for param in model.parameters():
+        dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
+        param.grad.data /= world_size
 
+
+def cleanup():
+    dist.destroy_process_group()
