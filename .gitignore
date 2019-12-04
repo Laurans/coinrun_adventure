@@ -123,3 +123,4 @@ dmypy.json
 experiment_results/*
 coinrun/.build-debug/*
 coinrun/.build-release/*
+.netrc
