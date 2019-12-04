@@ -13,15 +13,12 @@ python = "^3.7"
 loguru = "^0.3.2"
 joblib = "^0.14.0"
 mpi4py = "^3.0"
-matplotlib = "^3.1"
 gym = "^0.14.0"
 names = "^0.3.0"
-tensorflow-gpu = {path = "wheels/tensorflow_gpu-2.0.0-cp37-cp37m-manylinux2010_x86_64.whl"}
 dataclasses-serialization = "^1.2"
 opencv-python = "^4.1"
-tf-explain = "^0.1.0"
-baselines = {path = "wheels/baselines-0.1.5-py3-none-any.whl"}
-
+torch = "^1.3"
+tensorboard = "^2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"
