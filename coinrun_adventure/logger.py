@@ -1,7 +1,7 @@
 from collections import defaultdict
 from coinrun_adventure.utils import mkdir
 from pathlib import Path
-import tensorflow as tf
+from torch.utils.tensorboard import SummaryWriter
 
 
 class KVWriter:
@@ -27,14 +27,13 @@ class TensorBoardOutput(KVWriter):
     def __init__(self, logdir):
         self.logdir = (Path(logdir) / "tb").resolve()
         mkdir(self.logdir)
-        self.writer = tf.summary.create_file_writer(str(self.logdir))
+        self.writer = SummaryWriter(log_dir=str(self.logdir))
         self.step = 1
 
     def writekvs(self, kvs):
 
-        with self.writer.as_default():
-            for k, v in sorted(kvs.items()):
-                tf.summary.scalar(k, float(v), self.step)
+        for k, v in sorted(kvs.items()):
+            self.writer.add_scalar(k, float(v), self.step)
 
         self.writer.flush()
         self.step += 1

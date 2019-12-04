@@ -20,11 +20,11 @@ class SingletonExpConfig:
 
     def init(self):
         self.ENV_CONFIG = Config
-        self.DEVICE = "gpu"
+        self.DEVICE = "cuda"
 
         self.SAVE_DIR = Path(__file__).parent.parent.joinpath("experiment_results")
 
-        self.NUM_ENVS = 32 * 1
+        self.NUM_ENVS = 32 * 4
 
         self.TOTAL_TIMESTEPS = (
             256e6 * 8
@@ -52,8 +52,8 @@ class SingletonExpConfig:
         self.LOG_INTERVAL = 1  # Number of timesteps betwen logging events
 
         # The convolutional architecture to use
-        # One of {'nature', 'impala', 'impalalarge'}
-        self.ARCHITECTURE = "impala"
+        # One of {'NatureConv', 'impala', 'impalalarge'}
+        self.ARCHITECTURE = "NatureConv"
 
         # Should the model include an LSTM
         self.USE_LSTM = False

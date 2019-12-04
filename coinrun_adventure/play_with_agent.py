@@ -3,15 +3,11 @@ import json
 from pathlib import Path
 import cv2
 import numpy as np
-import tensorflow as tf
-from tf_explain.core.grad_cam import GradCAM
-from tf_explain.utils.display import heatmap_display
 from coinrun import make
 from coinrun_adventure.common import Metadata, Step
 from coinrun_adventure.utils import mkdir
 from loguru import logger
 
-from tf_explain.utils.image import apply_grey_patch
 import math
 
 
@@ -72,7 +68,7 @@ def experimental(model_keras, image, actions):
 def play(destination, model):
     model.network.pi.trainable = False
     model.network.value_fc.trainable = False
-    tf.random.set_seed(98437)
+    tf.random.set_seed(984_373)
     destination = Path(destination).resolve() / "play"
     sequence_folder = destination / "sequence"
     images_folder = destination / "image"
@@ -147,7 +143,7 @@ def play(destination, model):
         with open(str(sequence_folder / f"{timestep:05d}.json"), "w") as outfile:
             json.dump(step.as_json(), outfile)
 
-        logger.info(f"Save step: {timestep}")
+        logger.info(f"Save step: {timestep}, Reward {rew}")
         timestep += 1
 
     env.close()

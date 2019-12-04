@@ -6,7 +6,7 @@ from pathlib import Path
 import names
 
 from coinrun_adventure.config import ExpConfig
-from coinrun_adventure.ppo import get_model, learn
+from coinrun_adventure.ppo.entrypoint import get_model, learn
 from coinrun_adventure.utils import common_arg_parser, mkdir, restore_model, setup
 from coinrun_adventure.common import add_final_wrappers
 from coinrun_adventure.play_with_agent import play

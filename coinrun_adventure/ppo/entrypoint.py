@@ -1,10 +1,9 @@
-from coinrun_adventure.utils import misc_util
+from coinrun_adventure.utils.torch_utils import save_model
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo.model import Model
-from coinrun_adventure.ppo.agent import PPORunner
+from coinrun_adventure.ppo.runner import Runner
 import time
 import numpy as np
-import tensorflow as tf
 from coinrun_adventure.logger import get_metric_logger, Logger
 from pathlib import Path
 from loguru import logger as logo
@@ -12,11 +11,14 @@ from collections import deque
 import datetime
 
 
-def safemean(xs):
-    return np.nan if len(xs) == 0 else np.mean(xs)
+def process_ep_buf(epinfobuf):
+    rewards = [epinfo["r"] for epinfo in epinfobuf]
+    rew_mean = np.nanmean(rewards)
+
+    return rew_mean
 
 
-def run_update(update: int, nupdates: int, runner: PPORunner, model: Model):
+def run_update(update: int, nupdates: int, runner: Runner, model: Model):
     frac = 1.0 - (update - 1.0) / nupdates
 
     # Calculate the learning rate
@@ -24,7 +26,7 @@ def run_update(update: int, nupdates: int, runner: PPORunner, model: Model):
     cliprangenow = ExpConfig.CLIP_RANGE_FN(frac)
 
     # Get minibatch
-    obs, returns, masks, actions, values, neglogpacs, epinfos = runner.run()
+    data_sampled, epinfos = runner.run()
 
     # For each minibatch we'll calculate the loss and append it
     mblossvals = []
@@ -37,11 +39,8 @@ def run_update(update: int, nupdates: int, runner: PPORunner, model: Model):
         for start in range(0, ExpConfig.NBATCH, ExpConfig.NBATCH_TRAIN):
             end = start + ExpConfig.NBATCH_TRAIN
             mbinds = inds[start:end]
-            slices = (
-                tf.constant(arr[mbinds])
-                for arr in (obs, returns, masks, actions, values, neglogpacs)
-            )
-            mblossvals.append(model.train(lrnow, cliprangenow, *slices))
+            slices = {key: data_sampled[key][mbinds] for key in data_sampled}
+            mblossvals.append(model.train(lrnow, cliprangenow, slices))
 
     # Feedforward --> get losses --> updates
     lossvals = np.mean(mblossvals, axis=0)
@@ -49,18 +48,15 @@ def run_update(update: int, nupdates: int, runner: PPORunner, model: Model):
 
 
 def get_model():
-    # x_input = tf.keras.Input(shape=input_shape, dtype=tf.uint8)
-
-    model_fn = Model
-
-    model = model_fn(
+    model = Model(
         ob_shape=ExpConfig.OB_SHAPE,
-        ac_space=ExpConfig.AC_SPACE,
+        ac_space=ExpConfig.AC_SPACE.n,
         policy_network_archi=ExpConfig.ARCHITECTURE,
         ent_coef=ExpConfig.ENTROPY_WEIGHT,
         vf_coef=ExpConfig.VALUE_WEIGHT,
         l2_coef=ExpConfig.L2_WEIGHT,
         max_grad_norm=ExpConfig.MAX_GRAD_NORM,
+        device=ExpConfig.DEVICE,
     )
 
     return model
@@ -68,15 +64,16 @@ def get_model():
 
 def learn(exp_folder_path: Path, env):
     metric_logger: Logger = get_metric_logger(folder=exp_folder_path)
-
+    # To do metric
     model: Model = get_model()
 
-    runner: PPORunner = PPORunner(
+    runner = Runner(
         env=env,
         model=model,
         num_steps=ExpConfig.NUM_STEPS,
         gamma_coef=ExpConfig.GAMMA,
         lambda_coef=ExpConfig.LAMBDA,
+        device=ExpConfig.DEVICE,
     )
 
     epinfobuf10 = deque(maxlen=10)
@@ -86,7 +83,7 @@ def learn(exp_folder_path: Path, env):
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
-    for update in range(1, nupdates + 1):
+    for update in range(1, 2):  # nupdates + 1):
         logo.info(f"{update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
@@ -104,8 +101,8 @@ def learn(exp_folder_path: Path, env):
         fps = int(ExpConfig.NBATCH / (tnow - tstart))
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
-            rew_mean_100 = misc_util.process_ep_buf(epinfobuf100)
-            rew_mean_10 = misc_util.process_ep_buf(epinfobuf10)
+            rew_mean_100 = process_ep_buf(epinfobuf100)
+            rew_mean_10 = process_ep_buf(epinfobuf10)
             ep_len_mean = np.nanmean([epinfo["l"] for epinfo in epinfobuf100])
 
             time_elapsed = tnow - tfirststart
@@ -114,8 +111,7 @@ def learn(exp_folder_path: Path, env):
                 seconds=(time_elapsed / completion_perc - time_elapsed)
             )
 
-            metric_logger.logkv("misc/serial_timesteps", update * ExpConfig.NUM_STEPS)
-            metric_logger.logkv("misc/nupdates", update)
+            metric_logger.logkv("misc/iter_update", update)
             metric_logger.logkv("misc/total_timesteps", update * ExpConfig.NBATCH)
             metric_logger.logkv("fps", fps)
             metric_logger.logkv("misc/time_elapsed", time_elapsed)
@@ -131,7 +127,8 @@ def learn(exp_folder_path: Path, env):
             metric_logger.dumpkvs()
 
         if update % ExpConfig.SAVE_INTERVAL == 0 or update == 1:
-            misc_util.save_model(model, exp_folder_path / f"auto_save_{update}")
+            save_model(model, update, exp_folder_path / f"auto_save_{update}")
 
-    misc_util.save_model(model, exp_folder_path / "last_model")
+    save_model(model, update, exp_folder_path / "last_model")
     env.close()
+

@@ -1,30 +1,40 @@
-import tensorflow as tf
-from .policies import Policy
+from coinrun_adventure.network.bodies import body_factory
+from coinrun_adventure.network.heads import CategoricalActorCriticPolicy
+import torch
 
 
-class Model(tf.Module):
+class Model:
     def __init__(
         self,
-        ob_shape,
-        ac_space,
+        ob_shape: tuple,
+        ac_space: int,
         policy_network_archi,
         ent_coef,
         vf_coef,
         l2_coef,
         max_grad_norm,
+        device,
     ):
-        super().__init__(name="PPO2Model")
-        self.network = Policy(policy_network_archi, ob_shape, ac_space)
-        self.optimizer = tf.keras.optimizers.Adam()
-        self.optimizer.epsilon = 1e-5
+        phi_body = body_factory(policy_network_archi)(CHW_shape=ob_shape[::-1])
+        actor_body = body_factory("DummyBody")(phi_body.feature_dim)
+        critic_body = body_factory("DummyBody")(phi_body.feature_dim)
+
+        self.network = CategoricalActorCriticPolicy(
+            CHW_shape=ob_shape,
+            action_dim=ac_space,
+            phi_body=phi_body,
+            actor_body=actor_body,
+            critic_body=critic_body,
+        )
+        self.network.to(device)
+        self.device = device
+
+        self.optimizer = torch.optim.Adam(self.network.parameters(), eps=1e-5)
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
         self.l2_coef = l2_coef
         self.max_grad_norm = max_grad_norm
-        self.step = self.network.step
-        self.value = self.network.value
-        self.get_all_values = self.network.raw_value
-        self.initial_state = self.network.initial_state
+        self.step = self.network.forward
         self.loss_names = [
             "policy_loss",
             "value_loss",
@@ -33,70 +43,57 @@ class Model(tf.Module):
             "clipfrac",
         ]
 
-        self.var_list = self.network.trainable_variables
-        self.weight_params = [v for v in self.var_list if "/b" not in v.name]
+    def eval(self):
+        self.network.eval()
 
-    def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpac_old):
-        """
-        Make the training part (feedforward and retropropagation of gradients)
-        """
-        grads, pg_loss, vf_loss, entropy, approxkl, clipfrac = self.get_grad(
-            cliprange, obs, returns, masks, actions, values, neglogpac_old
+    def train(self, lr: float, cliprange, batch: dict):
+        self.network.train()
+
+        for param_group in self.optimizer.param_groups:
+            param_group["lr"] = lr
+
+        states = batch["states"]
+        actions = batch["actions"]
+        log_probs_old = batch["log_prob_a"]
+        returns = batch["returns"]
+        advantages = batch["advantages"]
+        values = batch["values"]
+
+        prediction = self.network(obs=states, action=actions)
+
+        policy_entropy = prediction["entropy"].mean()
+
+        vpredclipped = values + (prediction["state_value"] - values).clamp(
+            -cliprange, cliprange
         )
 
-        self.optimizer.learning_rate = lr
-        grads_and_vars = zip(grads, self.network.trainable_variables)
-        self.optimizer.apply_gradients(grads_and_vars)
+        value_loss1 = (returns - prediction["state_value"]).pow(2)
+        value_loss2 = (returns - vpredclipped).pow(2)
+        value_loss = 0.5 * torch.max(value_loss1, value_loss2).mean()
 
-        return pg_loss, vf_loss, entropy, approxkl, clipfrac
+        ratio = (prediction["log_prob_a"] - log_probs_old).exp()
+        policy_loss1 = ratio * advantages
+        policy_loss2 = ratio.clamp(1.0 - cliprange, 1.0 + cliprange) * advantages
+        policy_loss = -torch.min(policy_loss1, policy_loss2).mean()
 
-    def get_grad(self, cliprange, obs, returns, masks, actions, values, neglogpac_old):
-        # we calcurate advantage A(s, a) = R + yV(s') - V(s)
-        # Returns = R + yV(s')
-        advs = returns - values
+        approxkl = 0.5 * (prediction["log_prob_a"] - log_probs_old).pow(2).mean()
+        clipfrac = (torch.abs(ratio - 1.0) > cliprange).float().mean()
 
-        # Normalize the advantages
-        advs = (advs - tf.reduce_mean(advs)) / (tf.keras.backend.std(advs) + 1e-8)
+        l2_reg = torch.tensor(0.0, device=self.device)
+        for param in self.network.parameters():
+            l2_reg += torch.norm(param)
 
-        with tf.GradientTape() as tape:
-            out_pi = self.network.pi(obs)
-            distribution = self.network.distribution(out_pi)
-            neglogpac = distribution.neglogp(actions)
-            entropy = tf.reduce_mean(distribution.entropy())
-            vpred = self.network.value(obs)
-            vpredclipped = values + tf.clip_by_value(
-                vpred - values, -cliprange, cliprange
-            )
-            vf_losses1 = tf.square(vpred - returns)
-            vf_losses2 = tf.square(vpredclipped - returns)
-            vf_loss = 0.5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
+        loss = (
+            policy_loss
+            - policy_entropy * self.ent_coef
+            + value_loss * self.vf_coef
+            + l2_reg * self.l2_coef
+        )
 
-            ratio = tf.exp(neglogpac_old - neglogpac)
-            pg_losses1 = -advs * ratio
-            pg_losses2 = -advs * tf.clip_by_value(ratio, 1 - cliprange, 1 + cliprange)
-            pg_loss = tf.reduce_mean(tf.maximum(pg_losses1, pg_losses2))
+        self.optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.max_grad_norm)
+        self.optimizer.step()
 
-            approxkl = 0.5 * tf.reduce_mean(tf.square(neglogpac - neglogpac_old))
-            clipfrac = tf.reduce_mean(
-                tf.cast(tf.greater(tf.abs(ratio - 1.0), cliprange), tf.float32)
-            )
+        return policy_loss, value_loss, policy_entropy, approxkl, clipfrac
 
-            l2_loss = tf.reduce_sum([tf.nn.l2_loss(v) for v in self.weight_params])
-
-            loss = (
-                pg_loss
-                - entropy * self.ent_coef
-                + vf_loss * self.vf_coef
-                + l2_loss * self.l2_coef
-            )
-
-        grads = tape.gradient(loss, self.var_list)
-
-        if self.max_grad_norm is not None:
-            grads, _ = tf.clip_by_global_norm(grads, self.max_grad_norm)
-
-        return grads, pg_loss, vf_loss, entropy, approxkl, clipfrac
-
-    def get_first_last_conv_layers(self):
-        layers = list(filter(lambda x: "conv" in x.name, self.network.pi.layers))
-        return layers[0].name, layers[-1].name
