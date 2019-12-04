@@ -48,15 +48,9 @@ def restore_model(model, save_path):
     return update
 
 
-def sync_initial_weights(model, rank, world_size):
+def sync_initial_weights(model):
     for param in model.parameters():
-        if rank == 0:
-            for sibling in range(1, world_size):
-                print(f"sibling {sibling}")
-                dist.send(param.data, dst=sibling)
-
-        else:
-            dist.recv(param.data, src=0)
+        dist.broadcast(param.data, src=0)
 
 
 def sync_gradients(model):
@@ -68,3 +62,9 @@ def sync_gradients(model):
 
 def cleanup():
     dist.destroy_process_group()
+
+
+def sync_values(tensor_mean_values):
+    dist.reduce(tensor_mean_values, dst=0)
+    world_size = dist.get_world_size()
+    return tensor_mean_values / world_size

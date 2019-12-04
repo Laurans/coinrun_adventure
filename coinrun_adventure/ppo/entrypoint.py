@@ -1,4 +1,10 @@
-from coinrun_adventure.utils.torch_utils import save_model, sync_initial_weights
+from coinrun_adventure.utils.torch_utils import (
+    save_model,
+    sync_initial_weights,
+    sync_values,
+    to_np,
+    tensor,
+)
 from coinrun_adventure.config import ExpConfig
 from coinrun_adventure.ppo.model import Model
 from coinrun_adventure.ppo.runner import Runner
@@ -11,11 +17,13 @@ from collections import deque
 import datetime
 
 
-def process_ep_buf(epinfobuf):
-    rewards = [epinfo["r"] for epinfo in epinfobuf]
-    rew_mean = np.nanmean(rewards)
+def process_ep_buf(epinfobuf, device, key):
+    list_values = [epinfo[key] for epinfo in epinfobuf]
 
-    return rew_mean
+    tensor_mean = tensor(np.nanmean(list_values), device)
+    value_mean = to_np(sync_values(tensor_mean))
+
+    return value_mean
 
 
 def run_update(update: int, nupdates: int, runner: Runner, model: Model):
@@ -67,7 +75,7 @@ def learn(rank: int, exp_folder_path: Path, env):
     device = f"{ExpConfig.DEVICE}:{rank}"
     model: Model = get_model(device)
 
-    sync_initial_weights(model.network, rank, ExpConfig.WORLD_SIZE)
+    sync_initial_weights(model.network)
 
     runner = Runner(
         env=env,
@@ -85,8 +93,9 @@ def learn(rank: int, exp_folder_path: Path, env):
 
     nupdates = int(ExpConfig.TOTAL_TIMESTEPS // ExpConfig.NBATCH)
 
-    for update in range(1, nupdates + 1):
-        logo.info(f"{update}/{nupdates+1}")
+    for update in range(1, 3):  # nupdates + 1):
+        if rank == 0:
+            logo.info(f"{update}/{nupdates+1}")
         assert ExpConfig.NBATCH % ExpConfig.NUM_MINI_BATCH == 0
         # Start timer
         tstart = time.perf_counter()
@@ -103,9 +112,9 @@ def learn(rank: int, exp_folder_path: Path, env):
         fps = int(ExpConfig.NBATCH / (tnow - tstart))
 
         if update % ExpConfig.LOG_INTERVAL == 0 or update == 1:
-            rew_mean_100 = process_ep_buf(epinfobuf100)
-            rew_mean_10 = process_ep_buf(epinfobuf10)
-            ep_len_mean = np.nanmean([epinfo["l"] for epinfo in epinfobuf100])
+            rew_mean_100 = process_ep_buf(epinfobuf100, device, "r")
+            rew_mean_10 = process_ep_buf(epinfobuf10, device, "r")
+            ep_len_mean = process_ep_buf(epinfobuf100, device, "l")
 
             time_elapsed = tnow - tfirststart
             completion_perc = update * ExpConfig.NBATCH / ExpConfig.TOTAL_TIMESTEPS
@@ -134,4 +143,3 @@ def learn(rank: int, exp_folder_path: Path, env):
     if rank == 0:
         save_model(model, update, exp_folder_path / "last_model")
     env.close()
-    print(f"rank: {rank}\n {list(model.network.parameters())[-2].data[0, :10]}")
