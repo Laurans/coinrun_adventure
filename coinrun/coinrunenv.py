@@ -6,7 +6,6 @@ On import, this will attempt to build the shared library.
 
 import os
 import atexit
-import random
 import sys
 from ctypes import c_int, c_char_p, c_float, c_bool
 
@@ -108,7 +107,7 @@ def init_args_and_threads(cpu_count=4, monitor_csv_policy="all"):
             Config.USE_DATA_AUGMENTATION,
             game_versions[Config.GAME_TYPE],
             Config.SET_SEED,
-            Config.RAND_SEED
+            Config.RAND_SEED,
         ]
     ).astype(np.int32)
 
@@ -201,7 +200,7 @@ class CoinRunVecEnv(VecEnv):
         self.handle = 0
 
     def reset(self):
-        #print("CoinRun ignores resets")
+        # print("CoinRun ignores resets")
         obs, _, _, _ = self.step_wait()
         return obs
 

@@ -36,7 +36,7 @@ def multi_setup(rank, world_size, destination):
     cleanup()
 
 
-def train(args):
+def train():
 
     dirname = time.strftime("%Y%m%d_%H%M") + "_" + names.get_first_name()
     destination = ExpConfig.SAVE_DIR / dirname
@@ -59,7 +59,7 @@ def main(args_list: list):
     args, _ = arg_parser.parse_known_args(args_list)
 
     if args.train:
-        train(args)
+        train()
 
     if args.test and args.exp is not None:
         experiment_folder = Path(args.exp).resolve()
