@@ -53,7 +53,7 @@ class SingletonExpConfig:
         self.CLIP_RANGE = 0.2  # clipping range, constant
         self.CLIP_RANGE_FN = lambda f: f * self.CLIP_RANGE
 
-        self.LOG_INTERVAL = 1  # Number of timesteps betwen logging events
+        self.LOG_INTERVAL = 5  # Number of updates betwen logging events
 
         # The convolutional architecture to use
         # One of {'NatureConv', 'impala', 'impalalarge'}
@@ -80,10 +80,7 @@ class SingletonExpConfig:
         self.FRAME_STACK = 1
 
         # Overwrite the latest save file after this many updates
-        self.SAVE_INTERVAL = 50
-
-        # The number of episodes to evaluate with each evaluation environment
-        self.REP = 1
+        self.SAVE_INTERVAL = 100
 
         self.compute_args_dependencies()
 
