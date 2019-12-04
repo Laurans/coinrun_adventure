@@ -19,6 +19,9 @@ class SingletonExpConfig:
         return SingletonExpConfig.__instance
 
     def init(self):
+        self.PROJECT = "coinrun"
+        self.TAGS = ["PPO"]
+
         self.WORLD_SIZE = 2
 
         self.ENV_CONFIG = Config
@@ -28,9 +31,8 @@ class SingletonExpConfig:
 
         self.NUM_ENVS = 32 * (8 // self.WORLD_SIZE)
 
-        self.TOTAL_TIMESTEPS = 256e6 * (
-            8 // self.WORLD_SIZE
-        )  # Number of timesteps i.e. number of actions taken in the environment
+        # Number of timesteps i.e. number of actions taken in the environment
+        self.TOTAL_TIMESTEPS = 256e6
 
         self.ENTROPY_WEIGHT = (
             0.01
@@ -73,23 +75,15 @@ class SingletonExpConfig:
 
         # The probability the agent's action is replaced with a random action
         self.EPSILON_GREEDY = 0.0
+
         # The number of frames to stack for each observation.
         self.FRAME_STACK = 1
 
         # Overwrite the latest save file after this many updates
         self.SAVE_INTERVAL = 50
 
-        # The number of evaluation environments to use
-        self.NUM_EVAL = 20
-
         # The number of episodes to evaluate with each evaluation environment
         self.REP = 1
-
-        # Perform evaluation with all levels sampled from the training set
-        self.TRAIN_EVAL = False
-
-        # if not pathlib.Path(self.WORKDIR).exists():
-        #     os.makedirs(self.WORKDIR, exist_ok=True)
 
         self.compute_args_dependencies()
 
@@ -98,15 +92,20 @@ class SingletonExpConfig:
 
         self.NBATCH = self.NUM_ENVS * self.NUM_STEPS
         self.NBATCH_TRAIN = self.NBATCH // self.NUM_MINI_BATCH
-        # if isinstance(self.LEARNING_RATE, float):
-        #     self.LR_FN = constfn(self.LEARNING_RATE)
 
-        # if isinstance(self.CLIP_RANGE, float):
-        #     self.CLIP_RANGE_FN = constfn(self.CLIP_RANGE)
+        self.TAGS += [self.ARCHITECTURE]
 
     def merge(self, config_dict):
         for key in config_dict:
             setattr(self, key.upper(), config_dict[key])
+
+    def to_config_dict(self):
+        config = {}
+        for k, v in self.__dict__.items():
+            if type(v) in [int, float, str, bool, tuple, list]:
+                config[k] = v
+
+        return config
 
 
 ExpConfig = SingletonExpConfig()

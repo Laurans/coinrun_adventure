@@ -142,4 +142,6 @@ def learn(rank: int, exp_folder_path: Path, env):
 
     if rank == 0:
         save_model(model, update, exp_folder_path / "last_model")
+
     env.close()
+    metric_logger.close()

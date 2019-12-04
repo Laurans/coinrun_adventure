@@ -58,9 +58,6 @@ class SingletonConfig:
         ##
         self.IS_HIGH_RES = False
 
-        self.TEST_EVAL = False
-        self.TEST = False
-
         self.OB_SHAPE = (64, 64, 3)
         self.AC_SPACE = spaces.Discrete(7)
 
@@ -68,25 +65,12 @@ class SingletonConfig:
 
         self.compute_args_dependencies()
 
-    def is_test_rank(self):
-        if self.TEST:
-            rank = MPI.COMM_WORLD.Get_rank()
-            return rank % 2 == 1
-
-        return False
-
     def compute_args_dependencies(self):
         if self.PAINT_VEL_INFO < 0:
             if self.GAME_TYPE == "standard":
                 self.PAINT_VEL_INFO = 1
             else:
                 self.PAINT_VEL_INFO = 0
-
-        if self.TEST_EVAL:
-            self.NUM_LEVELS = 0
-            self.HIGH_DIFFICULTY = 1
-
-        self.TRAIN_TEST_COMM = MPI.COMM_WORLD.Split(1 if self.is_test_rank() else 0, 0)
 
     def merge(self, config_dict):
         for key in config_dict:
