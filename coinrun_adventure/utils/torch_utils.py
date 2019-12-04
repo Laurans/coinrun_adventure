@@ -54,17 +54,15 @@ def sync_initial_weights(model):
 
 
 def sync_gradients(model):
-    world_size = float(dist.get_world_size())
     for param in model.parameters():
         dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
-        param.grad.data /= world_size
 
 
 def cleanup():
     dist.destroy_process_group()
 
 
-def sync_values(tensor_mean_values):
-    dist.reduce(tensor_mean_values, dst=0)
-    world_size = dist.get_world_size()
-    return tensor_mean_values / world_size
+def sync_values(tensor_sum_values, tensor_nb_values):
+    dist.reduce(tensor_sum_values, dst=0)
+    dist.reduce(tensor_nb_values, dst=0)
+    return tensor_sum_values / tensor_nb_values

@@ -48,7 +48,7 @@ class TensorBoardOutput(KVWriter):
 
 class WandDBOutput(KVWriter):
     def __init__(self, logdir, job_type):
-        self.logdir = (Path(logdir) / "wandb").resolve()
+        self.logdir = Path(logdir).resolve()
         self.step = 1
         mkdir(self.logdir)
         wandb.init(

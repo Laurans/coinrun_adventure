@@ -19,9 +19,11 @@ import datetime
 
 def process_ep_buf(epinfobuf, device, key):
     list_values = [epinfo[key] for epinfo in epinfobuf]
+    
 
-    tensor_mean = tensor(np.nanmean(list_values), device)
-    value_mean = to_np(sync_values(tensor_mean))
+    tensor_sum = tensor(np.nansum(list_values), device)
+    tensor_nb = tensor(len(list_values), device)
+    value_mean = to_np(sync_values(tensor_sum, tensor_nb))
 
     return value_mean
 
