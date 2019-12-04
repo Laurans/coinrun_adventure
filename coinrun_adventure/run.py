@@ -25,7 +25,7 @@ from coinrun_adventure.utils import (
 
 def multi_setup(rank, world_size, destination):
 
-    dist.init_process_group(backend="gloo", rank=rank, world_size=world_size)
+    dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
 
     setup()
     env = make("standard", num_envs=ExpConfig.NUM_ENVS)
