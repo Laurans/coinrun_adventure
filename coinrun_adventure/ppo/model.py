@@ -2,6 +2,7 @@ from coinrun_adventure.network.bodies import body_factory
 from coinrun_adventure.network.heads import CategoricalActorCriticPolicy
 import torch
 from coinrun_adventure.utils.torch_utils import sync_gradients
+from coinrun_adventure.utils.torch_utils import tensor
 
 
 class Model:
@@ -53,11 +54,11 @@ class Model:
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
 
-        states = batch["states"]
-        actions = batch["actions"]
-        log_probs_old = batch["log_prob_a"]
-        returns = batch["returns"]
-        values = batch["values"]
+        states = tensor(batch["states"], self.device)
+        actions = tensor(batch["actions"], self.device)
+        log_probs_old = tensor(batch["log_prob_a"], self.device)
+        returns = tensor(batch["returns"], self.device)
+        values = tensor(batch["values"], self.device)
 
         advantages = returns - values
         advantages = (advantages - advantages.mean())/(advantages.std() + 1e-8)

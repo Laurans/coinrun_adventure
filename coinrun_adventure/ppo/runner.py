@@ -34,14 +34,14 @@ class Runner:
                 obs = input_preprocessing(self.obs, device=self.device)
                 prediction = self.model.step(obs)
                 actions = to_np(prediction["action"])
-                storage["states"] += [obs.clone()]
-                storage["actions"] += [prediction["action"]]
-                storage["values"] += [prediction["state_value"].squeeze()]
-                storage["log_prob_a"] += [prediction["log_prob_a"].squeeze()]
-                storage["dones"] += [tensor(self.dones, device=self.device)]
+                storage["states"] += [to_np(obs.clone())]
+                storage["actions"] += [to_np(prediction["action"])]
+                storage["values"] += [to_np(prediction["state_value"].squeeze())]
+                storage["log_prob_a"] += [to_np(prediction["log_prob_a"].squeeze())]
+                storage["dones"] += [self.dones]
 
                 self.obs[:], rewards, self.dones, infos = self.env.step(actions)
-                storage["rewards"] += [tensor(rewards, device=self.device)]
+                storage["rewards"] += [rewards]
                 for info in infos:
                     maybeepinfo = info.get("episode")
                     if maybeepinfo:
@@ -50,21 +50,21 @@ class Runner:
 
             # batch of steps to batch of rollouts
             for key in storage:
-                storage[key] = torch.stack(storage[key])
+                storage[key] = np.asarray(storage[key])
 
-            lastvalues = self.model.step(
+            lastvalues = to_np(self.model.step(
                 input_preprocessing(self.obs, device=self.device)
-            )["state_value"]
+            )["state_value"].squeeze())
 
             # discount/bootstrap
-            storage['advantages'] = torch.zeros_like(storage['rewards'])
-            storage['returns'] = torch.zeros_like(storage['rewards'])
+            storage['advantages'] = np.zeros_like(storage['rewards'])
+            storage['returns'] = np.zeros_like(storage['rewards'])
 
             lastgaelam = 0
             for t in reversed(range(self.num_steps)):
                 if t == self.num_steps - 1:
-                    nextnonterminal = tensor(1.0 - self.dones, device=self.device)
-                    nextvalues = lastvalues.squeeze()
+                    nextnonterminal = 1.0 - self.dones
+                    nextvalues = lastvalues
                 else:
                     nextnonterminal = 1.0 - storage['dones'][t+1]
                     nextvalues = storage["values"][t + 1]
@@ -79,9 +79,9 @@ class Runner:
                 )
 
             storage["returns"] = storage['advantages'] + storage['values']
-        
+
         for key in storage:
             s = storage[key].shape
-            storage[key] = storage[key].transpose(0,1).reshape(s[0]*s[1], *s[2:])
+            storage[key] = storage[key].swapaxes(0,1).reshape(s[0]*s[1], *s[2:])
 
         return storage, epinfos
