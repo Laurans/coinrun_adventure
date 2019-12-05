@@ -45,13 +45,18 @@ def train():
     rand_port = random.SystemRandom().randint(1000, 2000)
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(rand_port)
+    os.environ["WANDB_MODE"] = "dryrun"
 
-    mp.spawn(
-        multi_setup,
-        args=(ExpConfig.WORLD_SIZE, destination),
-        nprocs=ExpConfig.WORLD_SIZE,
-        join=True,
-    )
+    if ExpConfig.WORLD_SIZE > 1:
+        mp.spawn(
+            multi_setup,
+            args=(ExpConfig.WORLD_SIZE, destination),
+            nprocs=ExpConfig.WORLD_SIZE,
+            join=True,
+        )
+
+    else:
+        multi_setup(0, 1, destination)
 
 
 def main(args_list: list):
