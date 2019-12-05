@@ -21,7 +21,7 @@ class Runner:
         )
 
         self.obs[:] = env.reset()
-        self.dones = [False for _ in range(env.num_envs)]
+        self.dones = np.array([False for _ in range(env.num_envs)])
 
     def run(self):
         storage = defaultdict(list)
@@ -34,52 +34,54 @@ class Runner:
                 obs = input_preprocessing(self.obs, device=self.device)
                 prediction = self.model.step(obs)
                 actions = to_np(prediction["action"])
-                self.obs[:], rewards, self.dones, infos = self.env.step(actions)
-
-                storage["states"] += [obs]
+                storage["states"] += [obs.clone()]
                 storage["actions"] += [prediction["action"]]
-                storage["values"] += [prediction["state_value"]]
-                storage["log_prob_a"] += [prediction["log_prob_a"]]
-                storage["entropy"] += [prediction["entropy"]]
+                storage["values"] += [prediction["state_value"].squeeze()]
+                storage["log_prob_a"] += [prediction["log_prob_a"].squeeze()]
+                storage["dones"] += [tensor(self.dones, device=self.device)]
+
+                self.obs[:], rewards, self.dones, infos = self.env.step(actions)
                 storage["rewards"] += [tensor(rewards, device=self.device)]
-                storage["masks"] += [tensor(1 - self.dones, device=self.device)]
-                storage["advantages"].append([None] * self.env.num_envs)
-                storage["returns"].append([None] * self.env.num_envs)
                 for info in infos:
                     maybeepinfo = info.get("episode")
                     if maybeepinfo:
                         epinfos.append(maybeepinfo)
 
+
+            # batch of steps to batch of rollouts
+            for key in storage:
+                storage[key] = torch.stack(storage[key])
+
             lastvalues = self.model.step(
                 input_preprocessing(self.obs, device=self.device)
             )["state_value"]
-            returns = lastvalues
 
-            advantages = tensor(np.zeros((self.env.num_envs, 1)), device=self.device)
+            # discount/bootstrap
+            storage['advantages'] = torch.zeros_like(storage['rewards'])
+            storage['returns'] = torch.zeros_like(storage['rewards'])
+
+            lastgaelam = 0
             for t in reversed(range(self.num_steps)):
                 if t == self.num_steps - 1:
-                    nextvalues = lastvalues
+                    nextnonterminal = tensor(1.0 - self.dones, device=self.device)
+                    nextvalues = lastvalues.squeeze()
                 else:
+                    nextnonterminal = 1.0 - storage['dones'][t+1]
                     nextvalues = storage["values"][t + 1]
-
-                returns = (
-                    storage["rewards"][t] + self.gamma * storage["masks"][t] * returns
-                )
 
                 td_error = (
                     storage["rewards"][t]
-                    + self.gamma * storage["masks"][t] * nextvalues
+                    + self.gamma * nextvalues * nextnonterminal
                     - storage["values"][t]
                 )
 
-                advantages = (
-                    advantages * self.lam * self.gamma * storage["masks"][t] + td_error
+                storage['advantages'][t] = lastgaelam = (td_error + self.gamma *self.lam * nextnonterminal * lastgaelam
                 )
 
-                storage["advantages"][t] = advantages
-                storage["returns"][t] = returns
-
-        for key in list(storage.keys()):
-            storage[key] = torch.cat(storage[key], dim=0)
+            storage["returns"] = storage['advantages'] + storage['values']
+        
+        for key in storage:
+            s = storage[key].shape
+            storage[key] = storage[key].transpose(0,1).view(s[0]*s[1], *s[2:])
 
         return storage, epinfos

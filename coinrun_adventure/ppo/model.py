@@ -57,8 +57,10 @@ class Model:
         actions = batch["actions"]
         log_probs_old = batch["log_prob_a"]
         returns = batch["returns"]
-        advantages = batch["advantages"]
         values = batch["values"]
+
+        advantages = returns - values
+        advantages = (advantages - advantages.mean())/(advantages.std() + 1e-8)
 
         prediction = self.network(obs=states, action=actions)
 
@@ -67,17 +69,16 @@ class Model:
         vpredclipped = values + (prediction["state_value"] - values).clamp(
             -cliprange, cliprange
         )
-
         value_loss1 = (returns - prediction["state_value"]).pow(2)
         value_loss2 = (returns - vpredclipped).pow(2)
-        value_loss = 0.5 * torch.max(value_loss1, value_loss2).mean()
+        value_loss = 0.5 * (torch.max(value_loss1, value_loss2)).mean()
 
         ratio = (prediction["log_prob_a"] - log_probs_old).exp()
-        policy_loss1 = ratio * advantages
-        policy_loss2 = ratio.clamp(1.0 - cliprange, 1.0 + cliprange) * advantages
-        policy_loss = -torch.min(policy_loss1, policy_loss2).mean()
+        policy_loss1 = -advantages * ratio
+        policy_loss2 = -advantages * ratio.clamp(1.0 - cliprange, 1.0 + cliprange)
+        policy_loss = (torch.max(policy_loss1, policy_loss2)).mean()
 
-        approxkl = 0.5 * (prediction["log_prob_a"] - log_probs_old).pow(2).mean()
+        approxkl = 0.5 * ((prediction["log_prob_a"] - log_probs_old).pow(2)).mean()
         clipfrac = (torch.abs(ratio - 1.0) > cliprange).float().mean()
 
         l2_reg = torch.tensor(0.0, device=self.device)
