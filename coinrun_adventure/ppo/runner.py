@@ -82,6 +82,6 @@ class Runner:
         
         for key in storage:
             s = storage[key].shape
-            storage[key] = storage[key].transpose(0,1).view(s[0]*s[1], *s[2:])
+            storage[key] = storage[key].transpose(0,1).reshape(s[0]*s[1], *s[2:])
 
         return storage, epinfos
