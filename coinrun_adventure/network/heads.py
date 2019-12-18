@@ -42,19 +42,19 @@ class CategoricalActorCriticPolicy(nn.Module, BaseNet):
         phi_value = self.critic_body(phi)
 
         logits = self.fc_action(phi_action)
-        value = self.fc_critic(phi_value)
+        value = self.fc_critic(phi_value).squeeze()
 
         distribution = torch.distributions.Categorical(logits=logits)
 
         if action is None:
             action = distribution.sample()
 
-        log_prob = distribution.log_prob(action).unsqueeze(-1)
-        entropy = distribution.entropy().unsqueeze(-1)
+        log_prob = distribution.log_prob(action)
+        entropy = distribution.entropy()
 
         return {
             "action": action,
-            "log_prob_a": log_prob,
+            "neg_log_prob_a": -log_prob,
             "entropy": entropy,
-            "state_value": value,
+            "value": value,
         }

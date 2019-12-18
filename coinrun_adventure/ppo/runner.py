@@ -36,8 +36,8 @@ class Runner:
                 actions = to_np(prediction["action"])
                 storage["states"] += [to_np(obs.clone())]
                 storage["actions"] += [to_np(prediction["action"])]
-                storage["values"] += [to_np(prediction["state_value"].squeeze())]
-                storage["log_prob_a"] += [to_np(prediction["log_prob_a"].squeeze())]
+                storage["values"] += [to_np(prediction["value"])]
+                storage["neg_log_prob_a"] += [to_np(prediction["neg_log_prob_a"])]
                 storage["dones"] += [self.dones]
 
                 self.obs[:], rewards, self.dones, infos = self.env.step(actions)
@@ -54,7 +54,7 @@ class Runner:
 
             lastvalues = to_np(self.model.step(
                 input_preprocessing(self.obs, device=self.device)
-            )["state_value"].squeeze())
+            )["value"])
 
             # discount/bootstrap
             storage['advantages'] = np.zeros_like(storage['rewards'])

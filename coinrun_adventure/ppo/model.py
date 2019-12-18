@@ -54,32 +54,34 @@ class Model:
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
 
-        states = tensor(batch["states"], self.device)
+        obs = tensor(batch["states"], self.device)
         actions = tensor(batch["actions"], self.device)
-        log_probs_old = tensor(batch["log_prob_a"], self.device)
+        neglogpac_old = tensor(batch["neg_log_prob_a"], self.device)
         returns = tensor(batch["returns"], self.device)
         values = tensor(batch["values"], self.device)
 
-        advantages = returns - values
-        advantages = (advantages - advantages.mean())/(advantages.std() + 1e-8)
+        advs = returns - values
+        advs = (advs - advs.mean())/(advs.std() + 1e-8)
 
-        prediction = self.network(obs=states, action=actions)
+        self.optimizer.zero_grad()
 
+        prediction = self.network(obs=obs, action=actions)
+
+        neglogpac = prediction["neg_log_prob_a"]
         policy_entropy = prediction["entropy"].mean()
+        vpred = prediction["value"]
+        vpredclipped = values + (vpred - values).clamp( -cliprange, cliprange)
 
-        vpredclipped = values + (prediction["state_value"] - values).clamp(
-            -cliprange, cliprange
-        )
-        value_loss1 = (returns - prediction["state_value"]).pow(2)
-        value_loss2 = (returns - vpredclipped).pow(2)
-        value_loss = 0.5 * (torch.max(value_loss1, value_loss2)).mean()
+        vf_losses1 = (vpred - returns).pow(2)
+        vf_losses2 = (vpredclipped- returns).pow(2)
+        value_loss = 0.5 * (torch.max(vf_losses1, vf_losses2)).mean()
 
-        ratio = (prediction["log_prob_a"] - log_probs_old).exp()
-        policy_loss1 = -advantages * ratio
-        policy_loss2 = -advantages * ratio.clamp(1.0 - cliprange, 1.0 + cliprange)
-        policy_loss = (torch.max(policy_loss1, policy_loss2)).mean()
+        ratio = (neglogpac_old - neglogpac).exp()
+        pg_losses1 = -advs * ratio
+        pg_losses2 = -advs * ratio.clamp(1.0 - cliprange, 1.0 + cliprange)
+        policy_loss = (torch.max(pg_losses1, pg_losses2)).mean()
 
-        approxkl = 0.5 * ((prediction["log_prob_a"] - log_probs_old).pow(2)).mean()
+        approxkl = 0.5 * ((neglogpac - neglogpac_old).pow(2)).mean()
         clipfrac = (torch.abs(ratio - 1.0) > cliprange).float().mean()
 
         l2_reg = torch.tensor(0.0, device=self.device)
@@ -90,10 +92,9 @@ class Model:
             policy_loss
             - policy_entropy * self.ent_coef
             + value_loss * self.vf_coef
-            + l2_reg * self.l2_coef
+            #+ l2_reg * self.l2_coef
         )
 
-        self.optimizer.zero_grad()
         loss.backward()
         sync_gradients(self.network)
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.max_grad_norm)
