@@ -45,5 +45,6 @@ RUN cd $HOME && curl https://pyenv.run | bash && \
     pyenv install 3.7.4 && pyenv global 3.7.4
 
 # Install Poetry
-RUN eval "$(pyenv init -)" && pip install --upgrade pip poetry && poetry config settings.virtualenvs.create false
+COPY requirements.txt /tmp/requirements.txt
+RUN eval "$(pyenv init -)" && pip install --upgrade pip setuptools && pip install -r /tmp/requirements.txt 
 WORKDIR ${HOME}/workdir
